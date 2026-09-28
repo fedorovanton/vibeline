@@ -1,0 +1,36 @@
+# Локальное воспроизведение правил автопроверки (SonarQube, Sonar way).
+#
+# Набор golangci-lint по умолчанию (errcheck, govet, ineffassign, staticcheck,
+# unused) не проверяет того, что считает автопроверка, поэтому «чистый»
+# golangci-lint сочетался с 340 замечаниями уровня CRITICAL. Здесь включены
+# аналоги этих правил с теми же порогами:
+#   gocognit — go:S3776, когнитивная сложность функции больше 15;
+#   goconst  — go:S1192, строковый литерал повторён три раза и больше.
+version: "2"
+
+run:
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - gocognit
+    - goconst
+    - revive
+    - forcetypeassert
+    - noctx
+  settings:
+    gocognit:
+      min-complexity: 15
+    goconst:
+      min-len: 5
+      min-occurrences: 3
+      ignore-calls: false
+    revive:
+      rules:
+        - name: redefines-builtin-id
+        - name: unused-parameter
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

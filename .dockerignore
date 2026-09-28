@@ -1,0 +1,20 @@
+# Контекст сборки образа. Dockerfile делает COPY . . в стадии сборки, и без
+# этого файла туда уезжали бы секреты и артефакты прогонов. В итоговый образ
+# они не попадают, но остаются в слоях стадии сборки и в кеше builder'а.
+.env
+*.env
+*.key
+.git
+.claude
+.agents
+.idea
+.vscode
+bin
+dist
+reports
+testdata
+**/*.jsonl
+**/*.prof
+**/*.test
+*.zip
+ai-gateway

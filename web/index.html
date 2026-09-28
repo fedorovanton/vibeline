@@ -1,0 +1,3565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ai-gateway — стенд демонстрации</title>
+<style>
+/* Оформление рассчитано на показ с проектора: крупный шрифт, тёмный фон с
+   высоким контрастом, никаких анимаций и ничего мельче 15px. Внешних шрифтов,
+   стилей, картинок и значков нет — страница обязана открываться на сервере без
+   доступа в интернет, и политика безопасности документа этого не позволила бы:
+   default-src 'none' запрещает загрузку любых ресурсов. Значки нарисованы
+   встроенным SVG, фоны — градиентами. */
+:root {
+  color-scheme: dark;
+
+  --bg:        #080c11;
+  --bg-soft:   #0d131b;
+  --card:      #111a24;
+  --card-2:    #16212e;
+  --line:      #263646;
+  --line-soft: #1b2632;
+
+  --ink:   #eef5fb;
+  --ink-2: #a8bccf;
+  --ink-3: #7a90a5;
+
+  /* Зелёный — состояние «защищено», красный — «персональные данные открыты»,
+     янтарный — чужое время и всё, что во время сервиса не входит. Три роли
+     различимы не только цветом: у каждой своя рамка, штриховка или значок. */
+  --ok:        #2fe08a;
+  --ok-deep:   #17b56b;
+  --ok-soft:   #0f2d20;
+  --red:       #ff5f56;
+  --red-deep:  #c62f27;
+  --red-soft:  #2c1114;
+  --amber:     #ffb23f;
+  --amber-deep:#b3760f;
+  --amber-soft:#2a1d0a;
+  --blue:      #6fb2ff;
+
+  /* Палитра рядов дашборда проверена на отличимость при дальтонизме на фоне
+     карточки (skill dataviz, validate_palette.js --mode dark --surface #111a24):
+     синий/оранжевый/аква — ряды графиков, аква/жёлтый — «замаскировано» и
+     «найдено, но не маскируется». Смысловые цвета стенда (--ok, --red,
+     --amber) рядами не используются. */
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --s4: #c98500;
+  --crit: #e66767;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 520px at 12% -8%, #12212f 0%, rgba(8,12,17,0) 70%),
+    radial-gradient(900px 420px at 92% -4%, #101d2b 0%, rgba(8,12,17,0) 70%),
+    var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 19px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1720px; margin: 0 auto; padding: 0 28px; }
+
+/* ── Шапка и полоса контура ────────────────────────────────────────────── */
+
+.topbar {
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(8, 12, 17, 0.92);
+}
+.topbar-in {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-mark {
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ok-deep);
+  border-radius: 12px;
+  background: linear-gradient(160deg, #102a20, #0b1520);
+  flex: 0 0 auto;
+}
+.brand-mark svg { width: 26px; height: 26px; fill: none; stroke: var(--ok); stroke-width: 1.7; }
+.brand-text b { display: block; font-size: 25px; letter-spacing: 0.01em; line-height: 1.15; }
+.brand-text i { display: block; font-style: normal; font-size: 15.5px; color: var(--ink-2); }
+.topmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.topmeta .lbl { font-size: 15px; color: var(--ink-3); }
+
+.chip {
+  display: inline-block;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+.chip-mode { border-color: var(--ok-deep); color: var(--ok); background: var(--ok-soft); font-weight: 600; }
+.chip-link { color: var(--blue); text-decoration: none; }
+.chip-link:hover { border-color: var(--blue); }
+
+.flowband { border: 1px solid var(--line-soft); border-radius: 12px; background: var(--bg-soft); margin-top: 22px; }
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  padding: 12px 18px;
+  font-size: 16.5px;
+}
+.step {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px 14px;
+  color: var(--ink-2);
+  background: var(--card);
+  white-space: nowrap;
+}
+.step.on { border-color: var(--ok-deep); color: var(--ok); background: var(--ok-soft); font-weight: 600; }
+.arrow { color: var(--ink-3); font-size: 18px; }
+.flow-note { color: var(--ink-3); font-size: 15.5px; margin-left: auto; }
+
+main { padding-bottom: 72px; }
+
+/* ── Карточки и заголовки ──────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 22px 24px;
+  margin: 22px 0;
+  /* Прокрутка к карточке не должна прятать её заголовок под полосой вкладок. */
+  scroll-margin-top: 84px;
+}
+h1 { font-size: 26px; margin: 0; }
+h2 {
+  font-size: 24px;
+  margin: 0 0 14px;
+  letter-spacing: 0.01em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: baseline;
+}
+h3 { font-size: 19px; margin: 0; }
+.sub-h { font-size: 20px; margin: 30px 0 12px; padding-top: 18px; border-top: 1px solid var(--line-soft); }
+.hint { font-size: 15.5px; font-weight: 400; color: var(--ink-3); }
+p { margin: 8px 0; }
+.note { font-size: 16px; color: var(--ink-2); margin: 10px 0 0; }
+.cap { font-size: 15.5px; color: var(--ink-3); margin: 4px 0 10px; }
+
+/* ── Панель ввода ──────────────────────────────────────────────────────── */
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 24px;
+  align-items: start;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 15.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.field-label em { font-style: normal; text-transform: none; letter-spacing: 0; }
+
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 18px;
+  color: var(--ink);
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 10px 12px;
+}
+input::placeholder, textarea::placeholder { color: var(--ink-3); }
+input:focus, select:focus, textarea:focus, button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+input#key { width: 300px; max-width: 100%; letter-spacing: 0.08em; padding: 8px 12px; font-size: 17px; }
+textarea {
+  width: 100%;
+  min-height: 132px;
+  margin-top: 6px;
+  font-size: 19px;
+  line-height: 1.45;
+  resize: vertical;
+}
+button { cursor: pointer; background: var(--card-2); }
+button:hover { background: #1d2c3c; }
+button.primary {
+  background: var(--ok);
+  color: #05221a;
+  border-color: var(--ok);
+  font-weight: 700;
+  font-size: 19px;
+  padding: 13px 28px;
+}
+button.primary:hover { background: #4dedA0; }
+button[disabled] { cursor: default; opacity: 0.5; }
+button.ghost { color: var(--ink-2); }
+
+/* Переключатель систем-потребителей. Он крупный намеренно: разные политики
+   двух потребителей — отдельное утверждение защиты, и переключение должно
+   быть видно с задних рядов, а не прятаться в выпадающем списке. */
+.segmented { display: flex; flex-wrap: wrap; gap: 10px; }
+.seg {
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  padding: 9px 20px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.seg:hover { background: #17222e; }
+.seg.on {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: var(--ok-soft);
+}
+.seg[disabled] { opacity: 0.45; text-decoration: line-through; }
+
+.policy {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card-2);
+  padding: 16px 18px;
+}
+.policy h3 { font-size: 17px; color: var(--ink-2); margin-bottom: 10px; font-weight: 600; }
+.policy dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 16.5px; }
+.policy dt { color: var(--ink-3); }
+.policy dd { margin: 0; text-align: right; font-weight: 600; }
+.policy .yes { color: var(--ok); }
+.policy .no { color: var(--amber); }
+.policy .empty-note { color: var(--ink-3); font-size: 16px; margin: 0; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 20px; }
+.examples button { font-size: 16.5px; padding: 7px 14px; border-radius: 999px; }
+.actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 16px; }
+.status { font-size: 16.5px; margin: 0; color: var(--ink-2); }
+.status.err { color: var(--red); font-weight: 600; }
+
+/* ── Пустое состояние до первого прогона ───────────────────────────────── */
+
+.empty-state { border-style: dashed; }
+.empty-flow { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 14px; }
+.empty-flow div {
+  flex: 1 1 260px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--bg-soft);
+  font-size: 16.5px;
+  color: var(--ink-2);
+}
+.empty-flow b { display: block; color: var(--ink); font-size: 17px; }
+
+/* ── Главный блок: что ушло в модель ───────────────────────────────────── */
+
+.hero {
+  border: 2px solid var(--ok-deep);
+  background: linear-gradient(180deg, #0f2119 0%, var(--card) 190px);
+  padding: 24px 26px 26px;
+}
+.hero h2 { font-size: 28px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+.hero-tag {
+  border: 1px solid var(--ok-deep);
+  color: var(--ok);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.verdict {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--ink-3);
+  border-radius: 10px;
+  background: var(--bg-soft);
+  padding: 14px 18px;
+  margin: 12px 0 20px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.verdict.ok  { border-color: var(--ok-deep);   border-left-color: var(--ok);   background: var(--ok-soft); }
+.verdict.bad { border-color: var(--red-deep);  border-left-color: var(--red);  background: var(--red-soft); color: #ffd5d2; }
+.verdict.warn{ border-color: var(--amber-deep);border-left-color: var(--amber);background: var(--amber-soft); }
+.vicon {
+  flex: 0 0 auto;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700;
+  background: var(--ink-3); color: #06121a;
+}
+.verdict.ok   .vicon { background: var(--ok);    color: #052a1c; }
+.verdict.bad  .vicon { background: var(--red);   color: #2a0705; }
+.verdict.warn .vicon { background: var(--amber); color: #2a1a05; }
+
+.panes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.pane {
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-soft);
+  padding: 14px 16px 16px;
+  min-width: 0;
+}
+.pane.danger { border-top-color: var(--red); }
+.pane.safe   { border-top-color: var(--ok); }
+.pane-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.pane-head h3 { font-size: 18.5px; letter-spacing: 0.02em; }
+.pane.danger .pane-head h3 { color: #ffb3ae; }
+.pane.safe   .pane-head h3 { color: var(--ok); }
+.badge {
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.badge-danger { border-color: var(--red-deep); color: #ffb3ae; background: var(--red-soft); }
+.badge-ok     { border-color: var(--ok-deep);  color: var(--ok);  background: var(--ok-soft); }
+
+pre {
+  margin: 0;
+  padding: 14px 16px;
+  background: #0a1017;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+pre.text { font-family: inherit; font-size: 19px; line-height: 1.65; }
+
+details.raw { margin-top: 18px; }
+details.raw > summary {
+  cursor: pointer;
+  font-size: 16.5px;
+  color: var(--ink-2);
+  padding: 8px 0;
+  list-style-position: inside;
+}
+details.raw > summary:hover { color: var(--ink); }
+details.raw pre { margin-top: 8px; font-size: 15.5px; }
+
+/* Подсветка спанов: фон по типу ПД, подчёркивание по уровню уверенности.
+   Замаскированное значение получает цвет, найденное но не замаскированное —
+   только янтарный контур: на демонстрации разница «скрыто» и «уходит как
+   есть» обязана читаться, а не выводиться из мелкой подписи. */
+mark.pii {
+  padding: 2px 3px;
+  border-radius: 4px;
+  color: #0a1017;
+  font-weight: 600;
+  border-bottom: 3px solid rgba(8, 14, 20, 0.5);
+}
+mark.pii.c-strong { border-bottom-style: dashed; }
+mark.pii.c-weak   { border-bottom-style: dotted; }
+mark.pii.open {
+  background: transparent;
+  color: var(--amber);
+  border: 2px dashed var(--amber-deep);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+mark.ph { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
+.tag {
+  font-size: 13.5px;
+  font-family: system-ui, sans-serif;
+  font-weight: 600;
+  background: #05090d;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 6px;
+  margin-left: 5px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+mark.pii.open .tag { color: var(--amber); border-color: var(--amber-deep); }
+
+.t0 { background: #ffd978; } .t1 { background: #8fd4ff; } .t2 { background: #8fe6a3; }
+.t3 { background: #ffa8a8; } .t4 { background: #cdb6ff; } .t5 { background: #ffc48a; }
+.t6 { background: #86ead9; } .t7 { background: #f5a8db; } .t8 { background: #d4e08a; }
+.t9 { background: #b3c0ff; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 15.5px; color: var(--ink-2); margin-top: 16px; align-items: center; }
+.legend .chip { font-size: 15px; padding: 3px 12px; }
+.legend .swatch {
+  display: inline-block; width: 15px; height: 15px; border-radius: 3px;
+  margin-right: 8px; vertical-align: -2px;
+}
+.legend-title { color: var(--ink-3); font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Разведение времени сервиса и ожидания модели ──────────────────────── */
+
+.split { display: grid; gap: 14px; margin-top: 6px; }
+.split-row { display: grid; grid-template-columns: 300px minmax(0, 1fr) 230px; gap: 18px; align-items: center; }
+.sl b { display: block; font-size: 19px; }
+.sl span { font-size: 15.5px; color: var(--ink-3); }
+.sbar {
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0a1017;
+  position: relative;
+  overflow: hidden;
+}
+.sbar i { position: absolute; left: 0; top: 0; bottom: 0; display: block; min-width: 4px; }
+.sbar i.ours   { background: linear-gradient(180deg, #45f0a0, var(--ok-deep)); box-shadow: 0 0 16px 3px rgba(47, 224, 138, 0.75); }
+.sbar i.theirs { background: repeating-linear-gradient(45deg, #ffb23f 0 12px, #b3760f 12px 24px); }
+.sv { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sv b { font-size: 34px; line-height: 1.1; }
+.split-row.ours .sv b   { color: var(--ok); }
+.split-row.theirs .sv b { color: var(--amber); }
+.sv span { font-size: 16px; color: var(--ink-3); }
+.split-note {
+  margin-top: 16px;
+  font-size: 18px;
+  border-left: 4px solid var(--ok);
+  padding-left: 14px;
+  color: var(--ink);
+}
+
+/* ── Таблицы ───────────────────────────────────────────────────────────── */
+
+table { border-collapse: collapse; width: 100%; font-size: 17px; }
+th, td { border-bottom: 1px solid var(--line-soft); padding: 10px 12px; text-align: left; vertical-align: top; }
+thead th {
+  background: var(--card-2);
+  color: var(--ink-2);
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--line);
+}
+/* Прилипающая шапка только у таблицы со своей полосой прокрутки: в обычной
+   таблице она уехала бы под прилипающую шапку страницы. */
+.tablewrap thead th { position: sticky; top: 0; z-index: 1; }
+tbody tr:hover td { background: #16202b; }
+td.num { text-align: right; font-family: ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; font-variant-numeric: tabular-nums; }
+tr.total td { font-weight: 700; background: var(--card-2); border-top: 1px solid var(--line); }
+td.no { color: var(--amber); font-weight: 600; }
+td.yes { color: var(--ok); }
+.tablewrap { max-height: 480px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.tablewrap table { font-size: 16.5px; }
+
+tr.pick { cursor: pointer; }
+tr.pick:hover td { background: #1b2a3a; }
+tr.pick.on td { background: #12332a; box-shadow: inset 3px 0 0 var(--ok); font-weight: 600; }
+td.types { font-size: 15.5px; color: var(--ink-2); }
+
+/* ── Метрики ───────────────────────────────────────────────────────────── */
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 14px; }
+.kpi {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  padding: 14px 18px;
+}
+.kpi b { display: block; font-size: 36px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 15.5px; color: var(--ink-3); display: block; margin-top: 4px; }
+.kpi.wait b { color: var(--amber); }
+
+/* ── Трассировка ───────────────────────────────────────────────────────── */
+
+.track { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 8px 16px; align-items: center; margin-top: 10px; }
+.track > .tname { font-size: 16.5px; line-height: 1.3; }
+.track > .tname.sub { padding-left: 26px; color: var(--ink-2); }
+.track > .tname.outside { color: var(--amber); font-weight: 700; }
+.lane { position: relative; height: 30px; background: #0a1017; border: 1px solid var(--line); border-radius: 7px; }
+/* Высота отрезка задаётся явно, а не парой top/bottom: при box-sizing:
+   border-box растяжка по двум смещениям схлопывалась в ноль, и вложенные
+   отрезки становились невидимыми — проверено в браузере на живом стенде. */
+.bar { position: absolute; top: 0; height: 28px; background: linear-gradient(180deg, #45f0a0, var(--ok-deep)); min-width: 3px; border-radius: 6px; }
+.bar.sub { background: var(--ok-deep); top: 7px; height: 14px; }
+.bar.wait {
+  background: repeating-linear-gradient(45deg, #ffb23f 0 10px, #b3760f 10px 20px);
+  border: 1px solid var(--amber);
+}
+/* Дорожка ожидания модели отделена и фоном: цвет отрезка на проекторе
+   различают не все, а сдвинутая по тону дорожка видна при любой цветопередаче. */
+.lane.wait { background: var(--amber-soft); border-color: var(--amber-deep); }
+.barlabel { font-size: 14.5px; color: #05221a; font-weight: 700; padding: 3px 7px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* У коротких отрезков подпись не помещается внутрь и тёмным по тёмному
+   становится нечитаемой — она выносится вправо и печатается светлым. */
+.barlabel.out { position: absolute; top: 4px; color: var(--ink); padding: 3px 0 3px 8px; }
+.outside { color: var(--amber); font-weight: 700; }
+.totals { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; font-size: 17px; }
+.totals .chip b { font-variant-numeric: tabular-nums; }
+
+/* ── Журнал ────────────────────────────────────────────────────────────── */
+
+.jfilters { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+.jfilters select { min-width: 180px; font-size: 16.5px; padding: 7px 10px; }
+.jlist { max-height: max(420px, calc(100vh - 380px)); overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg-soft); }
+.jrow { display: grid; grid-template-columns: 108px 78px minmax(0, 1fr); gap: 12px; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); font-size: 16.5px; }
+.jrow:last-child { border-bottom: none; }
+.jrow:hover { background: #16202b; }
+.jrow > .jtime { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; color: var(--ink-3); }
+.lvl { text-align: center; font-size: 14px; font-weight: 700; padding: 1px 0; border-radius: 5px; height: 24px; border: 1px solid transparent; }
+.lvl.debug { background: #1b2632; color: var(--ink-2); border-color: var(--line); }
+.lvl.info  { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-deep); }
+.lvl.warn  { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-deep); }
+.lvl.error { background: var(--red-soft); color: var(--red); border-color: var(--red-deep); }
+.jmeta { font-size: 15px; color: var(--ink-3); margin-top: 2px; }
+.empty { padding: 16px; color: var(--ink-3); }
+
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; margin: 22px 0; }
+.grid2 > .card { margin: 0; }
+
+footer {
+  color: var(--ink-3);
+  font-size: 15.5px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  margin-top: 26px;
+  max-width: 1100px;
+}
+
+[hidden] { display: none !important; }
+
+/* ── Ключ доступа в шапке ──────────────────────────────────────────────── */
+
+.keybox { display: flex; align-items: center; gap: 10px; }
+.chip.good { border-color: var(--ok-deep); color: var(--ok); background: var(--ok-soft); font-weight: 600; }
+.chip.bad  { border-color: var(--red-deep); color: #ffb3ae; background: var(--red-soft); font-weight: 600; }
+
+/* ── Вкладки ───────────────────────────────────────────────────────────── */
+
+/* Выбранная вкладка отличается не только цветом: жирная черта снизу и фон
+   карточки читаются при любой цветопередаче проектора. */
+.tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(8, 12, 17, 0.96);
+  border-bottom: 1px solid var(--line);
+}
+.tabbar-in { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 6px 20px; padding-top: 6px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tab {
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: 18.5px;
+  font-weight: 600;
+  padding: 11px 20px 10px;
+}
+.tab:hover { background: var(--card); color: var(--ink); }
+.tab.on { background: var(--card); color: var(--ok); border-bottom-color: var(--ok); }
+.tbadge {
+  display: inline-block;
+  min-width: 26px;
+  margin-left: 6px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #2a0705;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+  vertical-align: 2px;
+}
+.pollbox { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+.pollbox .lbl { font-size: 15px; color: var(--ink-3); }
+.pollbox button { font-size: 16px; padding: 6px 14px; }
+
+/* ── Дашборд ───────────────────────────────────────────────────────────── */
+
+/* Палитра рядов графиков (--s1…--s4, --crit) объявлена в общем :root вверху. */
+
+.statusbar { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-top: 22px; }
+.statusbar .chip b { font-variant-numeric: tabular-nums; }
+.filterrow { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 18px; }
+.filterrow .seg { font-size: 17px; padding: 6px 16px; }
+.filterrow .cap { margin: 0; }
+
+/* Шесть показателей ложатся 3×2 или в один ряд на широком экране, восемь
+   плиток — 4×2: без одинокой карточки во второй строке. */
+#panel-dashboard .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.spark { height: 38px; margin-top: 8px; }
+.spark svg { display: block; }
+
+.chart { position: relative; min-height: 250px; }
+.chart svg { display: block; max-width: 100%; }
+.ch-grid { stroke: var(--line-soft); stroke-width: 1; }
+.ch-axis { stroke: var(--line); stroke-width: 1; }
+.ch-lbl { fill: var(--ink-3); font-size: 15px; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ln.s1 { stroke: var(--s1); }
+.ln.s2 { stroke: var(--s2); }
+.ln.spk { stroke: var(--ink-3); }
+.ar { stroke: none; opacity: 0.14; }
+.dot { stroke: var(--card); stroke-width: 2; }
+.dot.s1 { fill: var(--s1); }
+.dot.s2 { fill: var(--s2); }
+.kpi .dot, .tile .dot { stroke: var(--card-2); }
+.ch-cross { stroke: var(--ink-3); stroke-width: 1; }
+.ch-hit { fill: transparent; pointer-events: all; cursor: crosshair; }
+.ch-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--ink-3);
+  font-size: 16.5px;
+  text-align: center;
+}
+
+/* Ключи легенды повторяют форму метки: короткая черта — для линии,
+   квадрат — для бара. Текст легенды — цвета текста, не цвета ряда. */
+.ch-legend { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 16.5px; color: var(--ink-2); margin: -4px 0 10px; }
+.ch-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.key { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 8px; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 8px; flex: 0 0 auto; }
+.k-s1 { background: var(--s1); fill: var(--s1); }
+.k-s2 { background: var(--s2); fill: var(--s2); }
+.f-s1 { background: var(--s1); }
+.f-mask { background: var(--s3); }
+.f-open { background: var(--s4); }
+.o-ok { background: var(--s3); }
+.o-warn { background: var(--s4); }
+.o-serious { background: var(--s2); }
+.o-crit { background: var(--crit); }
+.o-neutral { background: #5d7082; }
+.o-neutral2 { background: #44525f; }
+
+.viztip {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  max-width: 380px;
+  background: #05090d;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 9px 13px;
+  font-size: 15.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.viztip .tt { color: var(--ink-3); font-size: 15px; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.viztip .tr { display: flex; align-items: center; gap: 8px; line-height: 1.5; }
+.viztip .tr .key, .viztip .tr .sw { margin-right: 0; }
+.viztip .tr b { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viztip .tr span { color: var(--ink-2); }
+
+/* Горизонтальные бары: толщина не больше 24 px, скруглён только конец
+   данных, у базовой линии бар прямой. Сегменты разделены зазором 2 px. */
+.hb { display: grid; gap: 12px; }
+/* Колонка подписи — доля ширины, а не пиксели: в половинной карточке на
+   проекторе 1280 фиксированные 290 px оставляли дорожке меньше сотни. */
+.hb-row { display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr) minmax(90px, auto); gap: 14px; align-items: center; }
+.hb-row.dim { opacity: 0.4; }
+.hb-lbl { font-size: 16.5px; line-height: 1.3; min-width: 0; }
+.hb-lbl small { display: block; color: var(--ink-3); font-size: 15px; }
+.hb-track { display: flex; min-width: 0; }
+.hb-seg { height: 20px; min-width: 3px; }
+.hb-seg + .hb-seg { margin-left: 2px; }
+.hb-seg:last-child { border-radius: 0 4px 4px 0; }
+.hb-seg:hover, .col-bar:hover { filter: brightness(1.3); }
+.hb-val { font-size: 16px; color: var(--ink-2); white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+.hb-val b { color: var(--ink); }
+
+.stack { display: flex; margin: 6px 0 14px; }
+.stack .hb-seg { height: 24px; }
+.bignum { margin: 0 0 8px; color: var(--ink-2); font-size: 17px; }
+.bignum b { color: var(--ink); font-size: 34px; margin-right: 6px; }
+.otable { font-size: 16px; }
+.otable td { padding: 7px 10px; }
+.otable code { font-size: 15px; color: var(--ink); }
+.oicon { display: inline-block; width: 16px; text-align: center; font-weight: 700; color: var(--ink-2); margin-right: 6px; }
+.stackcol { display: grid; gap: 22px; align-content: start; }
+.stackcol > .card { margin: 0; }
+/* Элемент сетки по умолчанию не уже своего содержимого: широкая таблица
+   распирала бы колонку за край экрана. Таблицы шире карточки прокручиваются
+   внутри своей обёртки — у страницы горизонтальной прокрутки нет. */
+.grid2 > *, .stackcol > * { min-width: 0; }
+.tscroll { overflow-x: auto; }
+
+/* Столбцы гистограммы: значение на вершине, подпись корзины под осью. */
+.cols { display: flex; align-items: flex-end; gap: 10px; height: 210px; border-bottom: 1px solid var(--line); }
+.col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.col-val { font-size: 15px; color: var(--ink-2); margin-bottom: 4px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.col-bar { width: 100%; max-width: 24px; background: var(--s1); border-radius: 4px 4px 0 0; }
+.col-lbls { display: flex; gap: 10px; margin-top: 8px; }
+.col-lbl { flex: 1 1 0; min-width: 0; text-align: center; font-size: 15px; line-height: 1.25; color: var(--ink-3); }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.tile {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  padding: 12px 16px;
+}
+.tile b { display: block; font-size: 28px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.tile span { display: block; font-size: 15.5px; color: var(--ink-3); margin-top: 2px; }
+
+/* ── Журнал ────────────────────────────────────────────────────────────── */
+
+.jfilters .grow { flex: 1 1 320px; }
+.jfilters input[type="search"] { width: 100%; font-size: 16.5px; padding: 7px 10px; }
+.lvlcounts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.lvlbtn { font-size: 15.5px; font-weight: 700; padding: 4px 14px; border-radius: 999px; }
+.lvlbtn.debug { color: var(--ink-2); }
+.lvlbtn.info  { color: var(--ok); border-color: var(--ok-deep); background: var(--ok-soft); }
+.lvlbtn.warn  { color: var(--amber); border-color: var(--amber-deep); background: var(--amber-soft); }
+.lvlbtn.error { color: var(--red); border-color: var(--red-deep); background: var(--red-soft); }
+.lvlbtn.on { outline: 2px solid var(--blue); outline-offset: 1px; }
+button.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+button.linkish:hover { background: none; color: var(--ink); }
+
+/* ── Конфигурация ──────────────────────────────────────────────────────── */
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 0; }
+.facts > div { border: 1px solid var(--line-soft); border-radius: 10px; background: var(--bg-soft); padding: 10px 14px; }
+.facts dt { font-size: 15px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+.facts dd { margin: 2px 0 0; font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+td.muted { color: var(--ink-3); }
+td code { font-size: 15.5px; }
+
+/* Узкий экран и проектор 1280: колонки схлопываются, шрифт не уменьшается —
+   читаемость с задних рядов важнее числа колонок на экране. */
+@media (max-width: 1400px) {
+  .setup-grid { grid-template-columns: minmax(0, 1fr); }
+  .split-row { grid-template-columns: 260px minmax(0, 1fr) 190px; }
+  .track { grid-template-columns: 300px minmax(0, 1fr); }
+}
+@media (max-width: 1100px) {
+  .panes, .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .split-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .sv { text-align: left; }
+  .flow-note { margin-left: 0; }
+}
+@media (min-width: 1640px) {
+  #panel-dashboard .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 1100px) {
+  .hb-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .hb-lbl { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  #panel-dashboard .kpis, .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Телефон: поля сужаются, полоса вкладок прокручивается внутри себя — у
+   страницы горизонтальной прокрутки нет. */
+@media (max-width: 700px) {
+  .wrap { padding: 0 16px; }
+  .brand-text i { display: none; }
+  .keybox { flex: 1 1 100%; }
+  .keybox input#key { flex: 1 1 auto; width: auto; min-width: 0; }
+  .tabbar-in { flex-wrap: nowrap; overflow-x: auto; }
+  .tabs { flex-wrap: nowrap; }
+  .tab { white-space: nowrap; font-size: 17px; padding: 10px 14px 9px; }
+  .step { white-space: normal; }
+  .chip { white-space: normal; border-radius: 12px; }
+  .card { padding: 16px; }
+  .track { grid-template-columns: minmax(0, 1fr); }
+  .jrow { grid-template-columns: 92px 70px minmax(0, 1fr); gap: 8px; padding: 9px 10px; }
+  .cols, .col-lbls { gap: 4px; }
+  table { font-size: 15.5px; }
+  th, td { padding: 8px; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2.6 20 5.4v6.1c0 4.7-3.2 8.4-8 9.9-4.8-1.5-8-5.2-8-9.9V5.4Z" stroke-linejoin="round"/>
+          <path d="m8.4 12.1 2.6 2.6 4.6-5.1" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <b>ai-gateway</b>
+        <i>модуль безопасности персональных данных перед языковой моделью</i>
+      </span>
+    </div>
+    <div class="topmeta">
+      <a class="chip chip-link" href="/presentation" title="Слайды о решении: инструкция, архитектура, замеры, план развития">Презентация</a>
+      <label class="keybox">
+        <span class="lbl">Ключ доступа</span>
+        <input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="из config.yaml или окружения">
+      </label>
+      <span id="keyState" class="chip keystate">ключ не указан</span>
+      <span class="lbl">Модель</span>
+      <span id="mode" class="chip chip-mode">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- Полоса вкладок прилипает к верху, шапка — нет: на проекторе 1280 шапка с
+     полем ключа съедала бы треть экрана на каждой прокрутке. Вкладки живут в
+     location.hash — сервер отдаёт одну страницу по GET /, новых маршрутов нет,
+     а прямая ссылка «/#dashboard» открывает нужную вкладку. -->
+<nav class="tabbar" id="tabbar" aria-label="Разделы стенда">
+  <div class="wrap tabbar-in">
+    <div class="tabs" role="tablist" id="tablist">
+      <button type="button" class="tab" role="tab" id="tab-jury" data-tab="jury" aria-controls="panel-jury">Проверка жюри</button>
+      <button type="button" class="tab" role="tab" id="tab-dashboard" data-tab="dashboard" aria-controls="panel-dashboard">Дашборд</button>
+      <button type="button" class="tab" role="tab" id="tab-history" data-tab="history" aria-controls="panel-history">История и трассировка</button>
+      <button type="button" class="tab" role="tab" id="tab-logs" data-tab="logs" aria-controls="panel-logs">Журнал <span class="tbadge" id="logsBadge" hidden></span></button>
+      <button type="button" class="tab" role="tab" id="tab-config" data-tab="config" aria-controls="panel-config">Конфигурация</button>
+    </div>
+    <div class="pollbox">
+      <span class="lbl" id="pollState">обновление раз в 2 с</span>
+      <button id="pollToggle" type="button" class="ghost">Остановить обновление</button>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ═══ Проверка жюри ═══════════════════════════════════════════════════ -->
+<section class="tabpanel" id="panel-jury" role="tabpanel" aria-labelledby="tab-jury">
+
+<div class="flowband">
+  <div class="flow">
+    <span class="step">Система-потребитель</span>
+    <span class="arrow">→</span>
+    <span class="step on">ai-gateway · детекция и маскирование</span>
+    <span class="arrow">→</span>
+    <span class="step">Языковая модель</span>
+    <span class="arrow">→</span>
+    <span class="step on">ai-gateway · восстановление</span>
+    <span class="arrow">→</span>
+    <span class="step">Ответ потребителю</span>
+    <span class="flow-note">Персональные данные не покидают контур в открытом виде</span>
+  </div>
+</div>
+
+<section class="card">
+  <div class="setup-grid">
+    <div>
+      <div class="field">
+        <span class="field-label">Система-потребитель <em>— её политика применяется к прогону</em></span>
+        <div id="consumers" class="segmented"></div>
+      </div>
+      <p class="note">У потребителей разные наборы типов персональных данных, разные стратегии
+        маски и разное право восстановления. Прогоните один и тот же текст под
+        <b>demo</b> и под <b>crm</b> — разница видна в блоке ниже.</p>
+    </div>
+
+    <div class="policy" id="policyCard">
+      <h3>Политика выбранного потребителя</h3>
+      <p class="empty-note">Сведения приходят с сервиса вместе с разбором. Прогоните текст — политика появится здесь.</p>
+    </div>
+  </div>
+
+  <div class="examples">
+    <span class="field-label">Подставить пример:</span>
+    <span id="examples"></span>
+  </div>
+  <p id="exampleNote" class="note"></p>
+
+  <textarea id="text" spellcheck="false" aria-label="Текст обращения клиента" placeholder="Текст обращения клиента"></textarea>
+
+  <div class="actions">
+    <button type="button" id="run" class="primary">Прогнать через сервис</button>
+    <button type="button" id="clear" class="ghost">Очистить</button>
+    <p id="status" class="status"></p>
+  </div>
+</section>
+
+<section class="card empty-state" id="empty">
+  <h2>Стенд готов к прогону</h2>
+  <p class="cap">Три шага — и видно, что именно защита выпускает наружу.</p>
+  <div class="empty-flow">
+    <div><b>1. Ключ доступа</b>Поле в шапке страницы. Продуктовые эндпоинты обслуживаются только по ключу: без него стенд не отвечает.</div>
+    <div><b>2. Потребитель и текст</b>Выберите политику и подставьте пример или введите свой текст.</div>
+    <div><b>3. Прогон</b>Рядом появятся два текста: исходный и тот, что фактически ушёл в модель.</div>
+  </div>
+</section>
+
+<section id="result" hidden>
+
+  <section class="card hero">
+    <h2>Что фактически ушло в модель <span class="hero-tag">главное доказательство</span></h2>
+    <div id="verdict" class="verdict"><span class="vicon" id="vicon">—</span><span id="vtext"></span></div>
+
+    <div class="panes">
+      <article class="pane danger">
+        <div class="pane-head">
+          <h3>Исходный текст — до защиты</h3>
+          <span id="srcBadge" class="badge badge-danger">—</span>
+        </div>
+        <p class="cap">фон — тип персональных данных, подчёркивание — уровень уверенности, подпись — чем значение заменено</p>
+        <pre id="source" class="text"></pre>
+      </article>
+
+      <article class="pane safe">
+        <div class="pane-head">
+          <h3>Ушло в модель — после защиты</h3>
+          <span id="outBadge" class="badge badge-ok">—</span>
+        </div>
+        <p class="cap">содержимое отправленных сообщений, записанное на границе выпуска: по нему и ведётся поиск каждого замаскированного значения</p>
+        <pre id="sentMessages" class="text"></pre>
+      </article>
+    </div>
+
+    <div class="legend" id="typeLegend"></div>
+    <div class="legend">
+      <span class="legend-title">Уверенность</span>
+      <span class="chip">certain — форма плюс контрольная сумма или самодостаточная грамматика</span>
+      <span class="chip">strong — форма плюс явный маркер типа рядом</span>
+      <span class="chip">weak — совпала только форма</span>
+      <span class="chip">не подсвечено — не персональные данные</span>
+    </div>
+
+    <details class="raw">
+      <summary>Показать тело запроса к модели целиком — ровно то, что получил клиент модели</summary>
+      <pre id="sentBody"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Своё время против ожидания модели <span class="hint">организаторы измеряют только время сервиса</span></h2>
+    <div class="split">
+      <div class="split-row ours">
+        <div class="sl"><b>Время сервиса</b><span>защита запроса плюс восстановление ответа</span></div>
+        <div class="sbar"><i class="ours" id="barService"></i></div>
+        <div class="sv"><b id="numService">—</b> <span>мс</span></div>
+      </div>
+      <div class="split-row theirs">
+        <div class="sl"><b>Ожидание модели</b><span>чужое время, во время сервиса не входит</span></div>
+        <div class="sbar"><i class="theirs" id="barLLM"></i></div>
+        <div class="sv"><b id="numLLM">—</b> <span>мс</span></div>
+      </div>
+    </div>
+    <p class="split-note" id="ratio"></p>
+
+    <h3 class="sub-h">Тайминги по этапам</h3>
+    <div class="tscroll">
+    <table>
+      <thead>
+        <tr><th>Этап</th><th>Время, мс</th><th>Входит во время сервиса</th><th>Как измерено</th></tr>
+      </thead>
+      <tbody id="timings"></tbody>
+    </table>
+    </div>
+    <div class="actions">
+      <button id="toTrace" type="button" hidden>Трассировка этапов этого запроса →</button>
+      <span class="cap">диаграмма этапов на шкале времени — на вкладке «История и трассировка»</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Сводка найденного</h2>
+    <div class="tscroll">
+    <table>
+      <thead>
+        <tr><th>Тип персональных данных</th><th>Найдено</th><th>Замаскировано</th><th>Стратегия</th></tr>
+      </thead>
+      <tbody id="summary"></tbody>
+    </table>
+    </div>
+    <p id="policy" class="note"></p>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Ответ модели как есть</h2>
+      <p class="cap">до восстановления: модель отвечала на защищённый текст и видела только плейсхолдеры</p>
+      <pre id="raw" class="text"></pre>
+    </section>
+    <section class="card">
+      <h2>Ответ после восстановления</h2>
+      <p id="demaskNote" class="cap"></p>
+      <pre id="restored" class="text"></pre>
+    </section>
+  </div>
+
+</section>
+
+</section>
+
+<!-- ═══ Дашборд ═════════════════════════════════════════════════════════ -->
+<!-- Всё на вкладке строится по открытым /metrics, /healthz и /readyz и потому
+     работает без ключа. Значений персональных данных здесь нет и быть не
+     может: метрики несут только счётчики, длительности и имена типов. -->
+<section class="tabpanel" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" hidden>
+
+<div class="statusbar">
+  <span class="chip" id="svcHealth">состояние сервиса — ждём ответ</span>
+  <span class="chip">версия <b id="svcVersion">—</b></span>
+  <span class="chip">работает <b id="svcUptime">—</b></span>
+  <span class="chip">конфигурация загружена <b id="svcLoaded">—</b></span>
+  <span class="chip">соответствий в хранилище <b id="svcStore">—</b></span>
+</div>
+
+<div class="filterrow">
+  <span class="field-label">Эндпоинт</span>
+  <div class="segmented" id="epFilter"></div>
+  <span class="cap">организаторы измеряют только /process — выберите его, чтобы видеть их цифры</span>
+</div>
+
+<section class="card">
+  <h2>Метрики сервиса <span class="hint">сняты с /metrics, обновляются без перезагрузки страницы</span></h2>
+  <div class="kpis">
+    <div class="kpi"><b id="mLatAvg">—</b><span>Latency средняя, мс — только время сервиса</span><div class="spark" id="spLatAvg"></div></div>
+    <div class="kpi"><b id="mLatP95">—</b><span>Latency p95, мс</span><div class="spark" id="spLatP95"></div></div>
+    <div class="kpi"><b id="mRps">—</b><span>RPS — запросов в секунду</span><div class="spark" id="spRps"></div></div>
+    <div class="kpi"><b id="mTps">—</b><span>TPS — токенов в секунду, 4 байта на токен</span><div class="spark" id="spTps"></div></div>
+    <div class="kpi"><b id="mTotal">—</b><span>Всего запросов обработано</span><div class="spark" id="spTotal"></div></div>
+    <div class="kpi wait"><b id="mLlm">—</b><span>Ожидание модели средн., мс — вне времени сервиса</span><div class="spark" id="spLlm"></div></div>
+  </div>
+  <p class="note" id="mNote">Latency средняя и p95 — с запуска сервиса; RPS и TPS — прирост счётчиков между
+    двумя опросами. Линия под числом — последние 5 минут с момента открытия страницы. Фильтр
+    эндпоинта не действует на TPS и ожидание модели: эти счётчики общие на весь сервис.</p>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Запросы в секунду <span class="hint">последние 5 минут</span></h2>
+    <div class="ch-legend" id="lgRps"></div>
+    <div class="chart" id="chRps"></div>
+  </section>
+  <section class="card">
+    <h2>Время ответа сервиса, мс <span class="hint">без ожидания модели · за интервал опроса</span></h2>
+    <div class="ch-legend" id="lgLat"></div>
+    <div class="chart" id="chLat"></div>
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Токены в секунду <span class="hint">все эндпоинты · 4 байта на токен</span></h2>
+    <div class="chart" id="chTps"></div>
+  </section>
+  <section class="card">
+    <h2>Распределение времени ответа <span class="hint">с запуска сервиса · корзины гистограммы</span></h2>
+    <div id="chHist"></div>
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <h2>Персональные данные по типам <span class="hint">все эндпоинты · с запуска сервиса</span></h2>
+    <div class="ch-legend">
+      <span class="lg"><i class="sw f-mask"></i>замаскировано</span>
+      <span class="lg"><i class="sw f-open"></i>найдено, политика потребителя не маскирует</span>
+    </div>
+    <div id="chPii"></div>
+  </section>
+  <div class="stackcol">
+    <section class="card">
+      <h2>Исходы запросов <span class="hint">с запуска сервиса</span></h2>
+      <div id="chOut"></div>
+    </section>
+    <section class="card">
+      <h2>Запросы по эндпоинтам <span class="hint">с запуска сервиса</span></h2>
+      <div id="chEp"></div>
+    </section>
+  </div>
+</div>
+
+<section class="card">
+  <h2>Хранилище соответствий и рантайм <span class="hint">in-memory Store с TTL · процесс Go</span></h2>
+  <div class="tiles">
+    <div class="tile"><b id="stEntries">—</b><span>соответствий в хранилище</span><div class="spark" id="spStEntries"></div></div>
+    <div class="tile"><b id="stBytes">—</b><span>объём соответствий</span></div>
+    <div class="tile"><b id="stEvicted">—</b><span>вытеснено по лимиту ёмкости</span></div>
+    <div class="tile"><b id="stExpired">—</b><span>удалено по TTL</span></div>
+    <div class="tile"><b id="rtHeap">—</b><span>куча Go — живые объекты</span><div class="spark" id="spHeap"></div></div>
+    <div class="tile"><b id="rtMem">—</b><span>память процесса, взятая у ОС</span></div>
+    <div class="tile"><b id="rtGor">—</b><span>горутин</span><div class="spark" id="spGor"></div></div>
+    <div class="tile"><b id="rtGc">—</b><span>циклов сборки мусора · доля CPU на сборку</span></div>
+  </div>
+</section>
+
+</section>
+
+<!-- ═══ История и трассировка ═══════════════════════════════════════════ -->
+<section class="tabpanel" id="panel-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+
+<section class="card">
+  <h2>История запросов <span class="hint">кольцевой буфер: старые записи вытесняются, неограниченного роста нет</span></h2>
+  <p class="note" id="histNote">Укажите ключ доступа в шапке страницы — история и журнал отдаются только по ключу и только владельцу.</p>
+  <div class="tablewrap" style="margin-top:12px">
+    <table>
+      <thead>
+        <tr>
+          <th>Время</th><th>Идентификатор</th><th>Потребитель</th><th>Операция</th>
+          <th>Найденные типы</th><th>Время сервиса, мс</th><th>Модель, мс</th><th>Исход</th>
+        </tr>
+      </thead>
+      <tbody id="historyRows"></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card empty-state" id="traceMiss" hidden>
+  <p class="note" id="traceMissText"></p>
+</section>
+
+<section class="card" id="traceBlock" hidden>
+  <h2>Трассировка этапов <span class="hint" id="traceFor"></span></h2>
+  <p class="cap">Ожидание модели показано отдельной дорожкой в штриховке: во время сервиса оно не входит.</p>
+  <div class="track" id="trace"></div>
+  <div class="totals">
+    <span class="chip">Время сервиса: <b id="trService">—</b> мс</span>
+    <span class="chip outside">Ожидание модели: <b id="trWait">—</b> мс — в оценку не входит</span>
+    <span class="chip">Всего от приёма до ответа: <b id="trTotal">—</b> мс</span>
+  </div>
+  <div class="tscroll" style="margin-top:18px">
+  <table>
+    <thead>
+      <tr><th>Тип персональных данных</th><th>Найдено</th><th>Замаскировано</th></tr>
+    </thead>
+    <tbody id="traceTypes"></tbody>
+  </table>
+  </div>
+</section>
+
+</section>
+
+<!-- ═══ Журнал ══════════════════════════════════════════════════════════ -->
+<section class="tabpanel" id="panel-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+
+<section class="card">
+  <h2>Поток журнала <span class="hint">обновляется без перезагрузки страницы · значений персональных данных в журнале нет</span></h2>
+  <div class="jfilters">
+    <label class="field">
+      <span class="field-label">Уровень</span>
+      <select id="fLevel">
+        <option value="">любой</option>
+        <option value="debug">debug</option>
+        <option value="info">info</option>
+        <option value="warn">warn</option>
+        <option value="error">error</option>
+      </select>
+    </label>
+    <label class="field">
+      <span class="field-label">Тип персональных данных</span>
+      <select id="fType"><option value="">любой</option></select>
+    </label>
+    <label class="field">
+      <span class="field-label">Исход</span>
+      <select id="fOutcome"><option value="">любой</option></select>
+    </label>
+    <label class="field grow">
+      <span class="field-label">Поиск</span>
+      <input id="fSearch" type="search" autocomplete="off" spellcheck="false" placeholder="идентификатор запроса, потребитель, эндпоинт или текст сообщения">
+    </label>
+  </div>
+  <div class="lvlcounts" id="lvlCounts"></div>
+  <div class="jlist" id="journal"></div>
+  <p class="note" id="jNote"></p>
+</section>
+
+</section>
+
+<!-- ═══ Конфигурация ════════════════════════════════════════════════════ -->
+<!-- Только просмотр. Политики потребителей без ключа не раскрываются: здесь
+     показано то, что сервис отдаёт всем, плюс политики, пришедшие с прогонов
+     под ключом в этой вкладке браузера. -->
+<section class="tabpanel" id="panel-config" role="tabpanel" aria-labelledby="tab-config" hidden>
+
+<section class="card">
+  <h2>Сервис <span class="hint">только просмотр: настройки меняются правкой config.yaml и сигналом SIGHUP — без пересборки и простоя</span></h2>
+  <dl class="facts" id="cfgService"></dl>
+</section>
+
+<section class="card">
+  <h2>Системы-потребители</h2>
+  <div class="tscroll">
+  <table>
+    <thead>
+      <tr><th>Потребитель</th><th>Состояние</th><th>Профиль отнесения</th><th>Стратегия по умолчанию</th><th>Маскируемых типов</th><th>Восстановление ответа</th></tr>
+    </thead>
+    <tbody id="cfgConsumers"></tbody>
+  </table>
+  </div>
+  <p class="note">Без ключа сервис отдаёт только идентификаторы и состояние потребителей. Политику —
+    типы, стратегии, право восстановления — возвращает прогон под ключом: прогоните текст под
+    потребителем на вкладке «Проверка жюри», и строка заполнится.</p>
+</section>
+
+<section class="card">
+  <h2>Каталог типов персональных данных <span class="hint" id="cfgTypesHint"></span></h2>
+  <div class="tscroll">
+  <table>
+    <thead>
+      <tr><th>Тип</th><th>Ключ в config.yaml</th><th>Плейсхолдер</th><th>Покрытие</th></tr>
+    </thead>
+    <tbody id="cfgTypes"></tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Сканеры детекции <span class="hint">детерминированные: грамматики, словари, контрольные суммы, контекст — без нейросетей</span></h2>
+  <div class="chips" id="cfgScanners"></div>
+</section>
+
+</section>
+
+<footer>
+  Страница встроена в бинарник и не обращается ни к одному внешнему адресу:
+  единственные запросы — к этому же сервису. Ни история, ни журнал, ни
+  трассировка, ни дашборд не содержат значений персональных данных: только
+  идентификаторы, имена типов, счётчики, длительности и исход.
+</footer>
+
+</main>
+
+<script>
+"use strict";
+
+// Заготовки. Значения синтетические: реальных персональных данных в
+// репозитории нет ни в примерах, ни в фикстурах. Ловушки нужны, чтобы на
+// демонстрации было видно — сервис маскирует не всё подряд.
+var EXAMPLES = [
+  {
+    title: "Ловушка: поэт и клиент",
+    consumer: "demo",
+    note: "Фамилия встречается трижды. Маскируется только клиент: упоминание поэта и улица, названная его именем, персональными данными не являются.",
+    text: "Заявку подал клиент Пушкин Александр Сергеевич, телефон +7 916 123-45-67. Он заказал собрание сочинений поэта Александра Пушкина и спросил про доставку на улицу Пушкина."
+  },
+  {
+    title: "Ловушка: адрес отделения и адрес клиента",
+    consumer: "demo",
+    note: "Адрес отделения банка — сведения об организации, он остаётся в тексте. Адрес клиента маскируется.",
+    text: "Отделение банка по адресу г. Москва, ул. Каланчёвская, д. 27 работает до 20:00. Клиент Сидорова Анна Петровна проживает по адресу г. Москва, ул. Лесная, д. 12, кв. 5, телефон +7 903 555-11-22."
+  },
+  {
+    title: "Полный набор реквизитов",
+    consumer: "demo",
+    note: "Обязательные типы по ТЗ: ФИО, паспорт, ИНН, карта, CVV, телефон, почта, дата рождения. Служебные слова остаются снаружи масок.",
+    text: "Клиент Иванов Иван Иванович, паспорт серия 4509 номер 123456, ИНН 779912345644, карта 4111 1111 1111 1111, cvv 123, тел. +7 916 123-45-67, почта ivan.ivanov@example.com, родился 12 мая 1990 года."
+  },
+  {
+    title: "Комбинация: карта и ПИН",
+    consumer: "crm",
+    note: "У потребителя crm ПИН-код и CVV маскируются только рядом с номером карты, а карта и телефон — звёздочками. Уберите из текста номер карты и прогоните ещё раз: ПИН останется найденным, но маскироваться перестанет.",
+    text: "Клиент Ковалёв Игорь Степанович сообщил, что карта 4276 5500 1234 5678 заблокирована, ПИН-код 4321 он не менял, CVV 456. Перезвоните на +7 921 777-33-11."
+  },
+  {
+    title: "Текст без персональных данных",
+    consumer: "demo",
+    note: "Ничего не найдено и ничего не замаскировано: избыточное маскирование штрафуется отдельной проверкой.",
+    text: "Подскажите, какие документы нужны для открытия расчётного счёта юридическому лицу и сколько дней занимает рассмотрение заявки."
+  }
+];
+
+var CONF_TITLE = { certain: "certain", strong: "strong", weak: "weak", denied: "denied" };
+
+// Повторяющиеся строки — одним именем: опечатка в одном из вхождений иначе
+// тихо ломала бы связь сценария с разметкой.
+var JSON_TYPE = "application/json";
+var CLS_EMPTY_NOTE = "empty-note";
+var ID_TRACE_BLOCK = "traceBlock";
+var ID_HISTORY_ROWS = "historyRows";
+var ID_POLL_TOGGLE = "pollToggle";
+var ATTR_VISIBILITY = "visibility";
+
+var el = function (id) { return document.getElementById(id); };
+var enc = new TextEncoder();
+var dec = new TextDecoder();
+
+function setStatus(msg, isError) {
+  var s = el("status");
+  s.textContent = msg;
+  s.className = isError ? "status err" : "status";
+}
+
+function clearNode(node) {
+  while (node.firstChild) { node.removeChild(node.firstChild); }
+}
+
+function tag(name, cls, text) {
+  var n = document.createElement(name);
+  if (cls) { n.className = cls; }
+  if (text !== undefined && text !== null) { n.textContent = text; }
+  return n;
+}
+
+// byteSlice вырезает участок текста по смещениям в байтах: сервис считает
+// спаны в байтах UTF-8, а строки браузера индексируются иначе.
+function byteSlice(bytes, from, to) {
+  return dec.decode(bytes.subarray(from, to));
+}
+
+// group расставляет неразрывные пробелы по разрядам: на проекторе «2 872»
+// читается с задних рядов, «2872» — уже нет.
+function group(s) {
+  var neg = s.charAt(0) === "-";
+  if (neg) { s = s.slice(1); }
+  var dot = s.indexOf(".");
+  var head = dot < 0 ? s : s.slice(0, dot);
+  var tail = dot < 0 ? "" : s.slice(dot);
+  var out = "";
+  var c = 0;
+  for (var i = head.length - 1; i >= 0; i--) {
+    out = head.charAt(i) + out;
+    c++;
+    if (c % 3 === 0 && i > 0) { out = " " + out; }
+  }
+  return (neg ? "-" : "") + out + tail;
+}
+
+// fmtMs печатает длительность по-русски: запятая как разделитель дробной
+// части, разряды разделены неразрывным пробелом.
+function fmtMs(v) {
+  if (v === null || v === undefined || isNaN(v)) { return "—"; }
+  var s;
+  if (v >= 100) { s = v.toFixed(0); }
+  else if (v >= 10) { s = v.toFixed(1); }
+  else { s = v.toFixed(2); }
+  return group(s).replace(".", ",");
+}
+
+function fmtInt(v) { return group(String(Math.round(v))); }
+
+// plural согласует существительное с числом: «в 1 раз», «в 3 854 раза»,
+// «в 27 600 раз». Ошибка в согласовании на проекторе бросается в глаза.
+function plural(n, one, few, many) {
+  var a = Math.abs(Math.round(n)) % 100;
+  var b = a % 10;
+  if (a > 10 && a < 20) { return many; }
+  if (b > 1 && b < 5) { return few; }
+  if (b === 1) { return one; }
+  return many;
+}
+
+// ── Системы-потребители ─────────────────────────────────────────────────────
+
+// Выбранный потребитель хранится в переменной, а не в выпадающем списке:
+// переключатель сделан крупными кнопками, чтобы смена политики читалась с
+// задних рядов. Значение уходит в тело запроса тем же полем consumer.
+var consumerID = "";
+var consumerList = [];
+// policyByConsumer — последняя политика, пришедшая с сервиса для каждого
+// потребителя. Страница не знает политику до прогона и не выдумывает её:
+// карточка заполняется ответом сервиса и помечена тем, что она из прогона.
+var policyByConsumer = {};
+// piiTypes — реестр типов ПД с сервиса. Метрики несут машинные ключи типов,
+// а дашборду и вкладке конфигурации нужны имена; второй словарь в странице
+// разошёлся бы с internal/pii при первом же новом типе.
+var piiTypes = [];
+var piiLabel = {};
+var llmMode = "";
+
+function readJSON(r) { return r.json(); }
+
+// consumerButton — кнопка переключателя потребителя; отключённый потребитель
+// виден, но не выбирается.
+function consumerButton(c) {
+  var b = tag("button", "seg", c.enabled ? c.id : c.id + " — отключён");
+  b.type = "button";
+  b.setAttribute("data-id", c.id);
+  b.disabled = !c.enabled;
+  if (c.enabled) {
+    b.addEventListener("click", function () { selectConsumer(c.id); });
+  }
+  return b;
+}
+
+// defaultConsumer — первый включённый потребитель, а если включён demo — он.
+function defaultConsumer(list) {
+  var first = "";
+  list.forEach(function (c) {
+    if (!c.enabled) { return; }
+    if (first === "" || c.id === "demo") { first = c.id; }
+  });
+  return first;
+}
+
+function modeCaption(mode) {
+  return mode === "stub"
+    ? "stub — ответ без обращения к сети"
+    : mode + " — реальное обращение к модели";
+}
+
+function applyConsumers(data) {
+  consumerList = data.consumers || [];
+  piiTypes = data.pii_types || [];
+  piiLabel = {};
+  piiTypes.forEach(function (t) { piiLabel[t.key] = t.label; });
+  llmMode = data.llm_mode || "";
+  var box = el("consumers");
+  clearNode(box);
+  consumerList.forEach(function (c) { box.appendChild(consumerButton(c)); });
+  selectConsumer(consumerID || defaultConsumer(consumerList));
+  el("mode").textContent = modeCaption(data.llm_mode);
+  if (activeTab === "config") { renderConfig(); }
+  if (activeTab === "dashboard") { renderDashboard(); }
+}
+
+function loadConsumers() {
+  return fetch("/api/v1/ui/consumers", { headers: { "Accept": JSON_TYPE } })
+    .then(readJSON)
+    .then(applyConsumers)
+    .catch(function () {
+      setStatus("Не удалось получить список систем-потребителей: сервис не отвечает.", true);
+    });
+}
+
+// selectConsumer переключает выбор на потребителя, под которого составлен
+// пример: разные заготовки показывают разные политики.
+function selectConsumer(id) {
+  if (!id) { return; }
+  var ok = false;
+  consumerList.forEach(function (c) { if (c.id === id && c.enabled) { ok = true; } });
+  if (!ok) { return; }
+  consumerID = id;
+  for (var btn of el("consumers").children) {
+    btn.className = btn.getAttribute("data-id") === id ? "seg on" : "seg";
+  }
+  renderPolicy();
+}
+
+function renderPolicy() {
+  var box = el("policyCard");
+  clearNode(box);
+  box.appendChild(tag("h3", "", "Политика потребителя " + (consumerID || "—")));
+
+  var p = policyByConsumer[consumerID];
+  if (!p) {
+    box.appendChild(tag("p", CLS_EMPTY_NOTE,
+      "Сведения приходят с сервиса вместе с разбором. Прогоните текст под этим потребителем — политика появится здесь."));
+    return;
+  }
+
+  var dl = document.createElement("dl");
+  function row(name, value, cls) {
+    dl.appendChild(tag("dt", "", name));
+    dl.appendChild(tag("dd", cls || "", value));
+  }
+  row("Профиль отнесения", p.profile);
+  row("Стратегия по умолчанию", p.default_strategy);
+  row("Маскируемых типов ПД", String(p.masked_types));
+  row("Восстановление ответа", p.demask ? "разрешено" : "запрещено", p.demask ? "yes" : "no");
+  box.appendChild(dl);
+
+  var per = p.perType || [];
+  if (per.length > 0) {
+    box.appendChild(tag("p", CLS_EMPTY_NOTE, "В последнем прогоне: " + per.join(", ") + "."));
+  }
+  box.appendChild(tag("p", CLS_EMPTY_NOTE, "Сведения получены с сервиса при последнем прогоне под этим потребителем."));
+}
+
+function buildExamples() {
+  var box = el("examples");
+  EXAMPLES.forEach(function (ex) {
+    var b = tag("button", "", ex.title);
+    b.type = "button";
+    b.addEventListener("click", function () {
+      el("text").value = ex.text;
+      el("exampleNote").textContent = "Что показывает: " + ex.note;
+      selectConsumer(ex.consumer);
+      setStatus("");
+    });
+    box.appendChild(b);
+  });
+}
+
+// ── Подсветка ───────────────────────────────────────────────────────────────
+
+// Палитра общая для обеих панелей: значение слева и его плейсхолдер справа
+// получают один цвет, и жюри видит соответствие без подписей.
+var palette = {};
+var paletteNext = 0;
+var paletteOrder = [];
+
+function colorOf(type, label) {
+  if (!(type in palette)) {
+    palette[type] = paletteNext % 10;
+    paletteNext++;
+    paletteOrder.push({ type: type, label: label, color: palette[type] });
+  }
+  return palette[type];
+}
+
+// renderSource собирает исходный текст с подсветкой найденных спанов.
+// Текст вставляется через textContent: разметка из введённого текста
+// исполняться не должна.
+function renderSource(text, spans) {
+  var box = el("source");
+  clearNode(box);
+  palette = {};
+  paletteNext = 0;
+  paletteOrder = [];
+
+  var bytes = enc.encode(text);
+  var prev = 0;
+  var detected = 0;
+  var masked = 0;
+
+  spans.forEach(function (sp) {
+    if (sp.start < prev) { return; }
+    detected++;
+    box.appendChild(document.createTextNode(byteSlice(bytes, prev, sp.start)));
+
+    var m = document.createElement("mark");
+    var value = byteSlice(bytes, sp.start, sp.end);
+    if (sp.masked) {
+      masked++;
+      m.className = "pii t" + colorOf(sp.type, sp.label) + " c-" + sp.confidence;
+    } else {
+      m.className = "pii open c-" + sp.confidence;
+    }
+    m.title = sp.label + " · уверенность " + (CONF_TITLE[sp.confidence] || sp.confidence) +
+      (sp.rule ? " · правило " + sp.rule : "");
+    m.appendChild(document.createTextNode(value));
+    m.appendChild(tag("span", "tag", sp.masked
+      ? sp.label + " → " + sp.replacement
+      : sp.label + " · политика не маскирует"));
+    box.appendChild(m);
+    prev = sp.end;
+  });
+  box.appendChild(document.createTextNode(byteSlice(bytes, prev, bytes.length)));
+
+  el("srcBadge").textContent = detected === 0
+    ? "персональных данных не найдено"
+    : "найдено " + detected + " · маскируется " + masked;
+  return { detected: detected, masked: masked };
+}
+
+// renderSentText печатает ушедший наружу текст и подсвечивает в нём
+// плейсхолдеры теми же цветами, что и заменённые значения слева.
+// replacementTypes собирает выданные плейсхолдеры и тип ПД каждого. Длинные
+// замены идут первыми: иначе короткая маска совпала бы внутри длинной и
+// разрезала её пополам.
+function replacementTypes(spans) {
+  var reps = [];
+  var repType = {};
+  (spans || []).forEach(function (sp) {
+    if (!sp.masked || !sp.replacement || (sp.replacement in repType)) { return; }
+    repType[sp.replacement] = sp.type;
+    reps.push(sp.replacement);
+  });
+  reps.sort(function (a, b) { return b.length - a.length; });
+  return { reps: reps, repType: repType };
+}
+
+// replacementAt — плейсхолдер, который начинается в позиции i, или null.
+function replacementAt(text, i, reps) {
+  for (var r of reps) {
+    if (text.startsWith(r, i)) { return r; }
+  }
+  return null;
+}
+
+function renderSentText(text, spans) {
+  var box = el("sentMessages");
+  clearNode(box);
+
+  var found = replacementTypes(spans);
+  var reps = found.reps;
+  var repType = found.repType;
+
+  var buf = "";
+  var i = 0;
+  while (i < text.length) {
+    var hit = replacementAt(text, i, reps);
+    if (hit === null) {
+      buf += text.charAt(i);
+      i++;
+      continue;
+    }
+    if (buf !== "") { box.appendChild(document.createTextNode(buf)); buf = ""; }
+    var m = tag("mark", "pii ph t" + colorOf(repType[hit], repType[hit]), hit);
+    box.appendChild(m);
+    i += hit.length;
+  }
+  if (buf !== "") { box.appendChild(document.createTextNode(buf)); }
+}
+
+function renderLegend() {
+  var box = el("typeLegend");
+  clearNode(box);
+  if (paletteOrder.length === 0) { return; }
+  box.appendChild(tag("span", "legend-title", "Замаскировано"));
+  paletteOrder.forEach(function (p) {
+    var chip = tag("span", "chip");
+    chip.appendChild(tag("span", "swatch t" + p.color));
+    chip.appendChild(document.createTextNode(p.label));
+    box.appendChild(chip);
+  });
+  box.appendChild(tag("span", "chip", "янтарный контур — найдено, но политика потребителя не маскирует"));
+}
+
+// ── Главный блок ────────────────────────────────────────────────────────────
+
+function renderSent(data) {
+  var sent = data.sent_to_model || {};
+  var leak = data.leak_check || {};
+  var verdict = el("verdict");
+  var icon = el("vicon");
+  var textNode = el("vtext");
+
+  var lines = (sent.messages || []).map(function (m) { return m.role + ": " + m.content; });
+  var joined = lines.join("\n\n");
+
+  renderSource(el("text").value, data.spans || []);
+  renderLegend();
+
+  if (!sent.performed) {
+    verdict.className = "verdict warn";
+    icon.textContent = "!";
+    textNode.textContent = "Наружу не ушло ни одного байта: " + (data.chain_note || "защита не завершена");
+    el("sentBody").textContent = "(запрос в модель не отправлялся)";
+    el("sentMessages").textContent = "(запрос в модель не отправлялся)";
+    el("outBadge").className = "badge";
+    el("outBadge").textContent = "выпуска наружу не было";
+    return;
+  }
+
+  // Сверка ищет только найденные сервисом значения. Нераспознанное она не
+  // видит, поэтому «чисто» — нейтральная плашка, а не зелёная галочка:
+  // зелёный цвет рядом с пропущенной фамилией читался как «утечек нет»
+  // (оба жюри 23.09). Красный — только когда найденное ушло наружу.
+  var ok = leak.found === 0;
+  verdict.className = ok ? "verdict" : "verdict bad";
+  icon.textContent = ok ? "i" : "✗";
+  textNode.textContent = ok
+    ? "Из найденных сервисом значений (" + leak.checked + " шт.) в отправленных сообщениях " +
+      "не осталось ни одного. То, что сервис не распознал, эта сверка не видит — " +
+      "поэтому ниже показан сам текст, ушедший в модель: прочитайте его."
+    : "ВНИМАНИЕ: в содержимом отправленных сообщений найдено замаскированных значений: " +
+      leak.found + " из " + leak.checked + ".";
+
+  el("outBadge").className = ok ? "badge" : "badge badge-danger";
+  el("outBadge").textContent = ok
+    ? "из найденных значений внутри: 0 из " + leak.checked
+    : "утечка: " + leak.found + " из " + leak.checked;
+
+  el("sentBody").textContent = sent.body || "";
+  renderSentText(joined, data.spans || []);
+}
+
+// renderSplit разводит на глаз своё время и ожидание модели. Шкала общая и
+// линейная: собственное время сервиса на ней — полоска в несколько пикселей,
+// и это ровно то утверждение, которое нужно показать.
+function renderSplit(t) {
+  var svcMs = t.service || 0;
+  var llm = t.llm || 0;
+  var max = Math.max(svcMs, llm, 0.0001);
+
+  el("barService").style.width = (svcMs / max * 100).toFixed(3) + "%";
+  el("barLLM").style.width = (llm / max * 100).toFixed(3) + "%";
+  el("numService").textContent = fmtMs(svcMs);
+  el("numLLM").textContent = llm > 0 ? fmtMs(llm) : "—";
+
+  var note = el("ratio");
+  if (llm > 0 && svcMs > 0) {
+    var k = llm / svcMs;
+    note.textContent = "Ожидание модели больше собственного времени сервиса в " +
+      fmtInt(k) + " " + plural(k, "раз", "раза", "раз") +
+      ". В оценку идёт только время сервиса — " + fmtMs(svcMs) + " мс.";
+  } else if (llm > 0) {
+    note.textContent = "Собственное время сервиса меньше точности измерения; ожидание модели — " + fmtMs(llm) + " мс.";
+  } else {
+    note.textContent = "Обращения к модели в этом прогоне не было: всё время заняла защита запроса.";
+  }
+}
+
+function renderTimings(t) {
+  var rows = [
+    ["Детекция", t.detect, true, "отдельный прогон токенизации, сканеров и политики — он же даёт подсветку"],
+    ["Маскирование", t.mask, true, "применение замен к тому же тексту"],
+    ["Защита запроса на боевом пути", t.protect, true, "от вызова ядра до выпуска наружу: детекция, маскирование, запись соответствия"],
+    ["Ожидание модели", t.llm, false, "измерено ядром вокруг вызова модели"],
+    ["Восстановление и повторное сканирование ответа", t.restore, true, "от возврата модели до готового ответа"]
+  ];
+  var body = el("timings");
+  clearNode(body);
+  rows.forEach(function (r) {
+    var tr = document.createElement("tr");
+    tr.appendChild(tag("td", "", r[0]));
+    tr.appendChild(tag("td", "num", fmtMs(r[1])));
+    tr.appendChild(tag("td", r[2] ? "yes" : "no",
+      r[2] ? "да" : "нет — время модели во время сервиса не входит"));
+    tr.appendChild(tag("td", "", r[3]));
+    body.appendChild(tr);
+  });
+
+  var total = document.createElement("tr");
+  total.className = "total";
+  total.appendChild(tag("td", "", "Итого время сервиса"));
+  total.appendChild(tag("td", "num", fmtMs(t.service)));
+  total.appendChild(tag("td", "yes", "да"));
+  total.appendChild(tag("td", "", "защита плюс восстановление; ожидание модели (" + fmtMs(t.llm) + " мс) не учтено"));
+  body.appendChild(total);
+}
+
+function renderSummary(data) {
+  var body = el("summary");
+  clearNode(body);
+  var rows = data.summary || [];
+  if (rows.length === 0) {
+    var tr0 = document.createElement("tr");
+    var td0 = tag("td", "", "Персональных данных не найдено.");
+    td0.colSpan = 4;
+    tr0.appendChild(td0);
+    body.appendChild(tr0);
+  }
+  var per = [];
+  rows.forEach(function (row) {
+    var tr = document.createElement("tr");
+    tr.appendChild(tag("td", "", row.label));
+    tr.appendChild(tag("td", "num", String(row.detected)));
+    tr.appendChild(tag("td", "num", String(row.masked)));
+    tr.appendChild(tag("td", "", row.strategy));
+    body.appendChild(tr);
+    if (row.masked > 0) { per.push(row.label + " → " + row.strategy); }
+  });
+
+  var c = data.consumer || {};
+  var parts = [
+    "Потребитель: " + c.id,
+    "профиль отнесения: " + c.profile,
+    "стратегия по умолчанию: " + c.default_strategy,
+    "демаскирование: " + (c.demask ? "разрешено" : "запрещено"),
+    "маскируемых типов: " + c.masked_types
+  ];
+  el("policy").textContent = parts.join(" · ");
+
+  if (c.id) {
+    policyByConsumer[c.id] = {
+      profile: c.profile,
+      default_strategy: c.default_strategy,
+      demask: c.demask,
+      masked_types: c.masked_types,
+      perType: per
+    };
+    if (c.id === consumerID) { renderPolicy(); }
+  }
+}
+
+function render(data) {
+  renderSent(data);
+  el("raw").textContent = data.model_response_raw || "(модель ответа не вернула)";
+  el("restored").textContent = data.model_response_restored || "(восстанавливать нечего)";
+  el("demaskNote").textContent = (data.consumer && data.consumer.demask)
+    ? "плейсхолдеры, выданные в этом запросе, заменены обратно на исходные значения"
+    : "потребителю демаскирование запрещено политикой: ответ остаётся с плейсхолдерами";
+  renderSplit(data.timings_ms || {});
+  renderTimings(data.timings_ms || {});
+  renderSummary(data);
+  el("empty").hidden = true;
+  el("result").hidden = false;
+}
+
+// runStatusText — итог прогона для строки состояния: цепочка и замечания
+// сервиса к ней.
+function runStatusText(data) {
+  var notes = data.notes || [];
+  var tail = notes.length ? " " + notes.join(" ") : "";
+  if (data.chain_status === "ok") { return "Готово." + tail; }
+  return (data.chain_note || "Цепочка завершилась не полностью.") + tail;
+}
+
+function readStatusJSON(r) {
+  return r.json().then(function (data) { return { status: r.status, data: data }; });
+}
+
+function onAnalyzed(res) {
+  if (res.status !== 200) {
+    if (res.status === 401) { setKeyState("bad"); }
+    el("result").hidden = true;
+    el("empty").hidden = false;
+    setStatus("Сервис ответил " + res.status + ": " + (res.data.error || "ошибка"), true);
+    return;
+  }
+  setKeyState("ok");
+  render(res.data);
+  // Прогон сразу подтягивает свою запись в историю и готовит её
+  // трассировку на соседней вкладке: переход «прогнал — вижу этапы» не
+  // должен требовать ожидания следующего тика опроса.
+  lastRunId = res.data.request_id || "";
+  el("toTrace").hidden = lastRunId === "";
+  pollOnce();
+  if (lastRunId !== "") { openTrace(lastRunId); }
+  setStatus(runStatusText(res.data), res.data.chain_status !== "ok");
+}
+
+function run() {
+  var text = el("text").value;
+  if (text.trim() === "") {
+    setStatus("Введите текст обращения.", true);
+    return;
+  }
+  var key = el("key").value.trim();
+  if (key === "") {
+    setStatus("Укажите ключ доступа в шапке страницы: продуктовые эндпоинты обслуживаются только по ключу.", true);
+    el("key").focus();
+    return;
+  }
+
+  var btn = el("run");
+  btn.disabled = true;
+  setStatus("Запрос выполняется…");
+
+  fetch("/api/v1/analyze", {
+    method: "POST",
+    headers: { "Content-Type": JSON_TYPE, "X-API-Key": key },
+    body: JSON.stringify({ text: text, consumer: consumerID })
+  }).then(readStatusJSON).then(onAnalyzed).catch(function () {
+    setStatus("Сервис недоступен.", true);
+  }).then(function () {
+    btn.disabled = false;
+  });
+}
+
+// ── Наблюдаемость: метрики, история, трассировка, поток журнала ──────────────
+//
+// Способ обновления — периодический опрос, а не поток событий (SSE).
+// Обоснование: поток событий держит по открытому соединению на каждого
+// зрителя, а соединение занимает слот предела одновременной обработки на всё
+// время демонстрации; к нему нужны heartbeat, переподключение и горутина с
+// условием выхода на каждого подписчика. Опрос раз в две секунды не хранит
+// состояния на сервере, переживает перезагрузку страницы и потерю сети без
+// единой строки кода восстановления и не может заклинить ограничитель. Разницу
+// в свежести на демонстрации никто не заметит, а цену отказа — заметят все.
+// Опрос сделан разностным: журнал запрашивается параметром after, и повторно
+// передаётся только то, чего страница ещё не видела.
+var POLL_MS = 2000;
+var pollTimer = null;
+var pollTick = 0;
+// Опросы не должны накладываться друг на друга: ручное обновление и тик
+// таймера могли бы уйти на сервер одновременно с одним и тем же after, и
+// страница получила бы одни и те же записи дважды. Флаги дешевле, чем отмена
+// запроса, и не требуют AbortController.
+var journalBusy = false;
+var metricsBusy = false;
+var serviceBusy = false;
+var journalSeq = 0;
+var journalRows = [];
+// journalPrimed — страница уже получила записи, накопленные до её открытия.
+// Бейдж вкладки считает только то, что пришло после: иначе стенд встречал бы
+// жюри красной цифрой за вчерашние прогоны.
+var journalPrimed = false;
+var journalUnseen = 0;
+var typeLabels = {};
+var outcomes = {};
+var selectedRequest = "";
+var lastRunId = "";
+
+function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+
+function apiKeyValue() { return el("key").value.trim(); }
+
+// ── Ключ доступа ────────────────────────────────────────────────────────────
+
+// setKeyState показывает, что сервис сказал о ключе. Раньше неверный ключ
+// проявлялся только тишиной в истории и журнале, и на демонстрации это
+// выглядело как зависший стенд.
+function setKeyState(state) {
+  var chip = el("keyState");
+  if (state === "ok") {
+    chip.className = "chip keystate good";
+    chip.textContent = "✓ ключ принят";
+  } else if (state === "bad") {
+    chip.className = "chip keystate bad";
+    chip.textContent = "✗ ключ отклонён";
+  } else {
+    chip.className = "chip keystate";
+    chip.textContent = "ключ не указан";
+  }
+}
+
+function authFetch(path) {
+  var key = apiKeyValue();
+  if (key === "") {
+    setKeyState("none");
+    return Promise.reject(new Error("no-key"));
+  }
+  return fetch(path, { headers: { "Accept": JSON_TYPE, "X-API-Key": key } })
+    .then(function (r) {
+      // Ответ на прежний ключ не отрисовывается: пока запрос летел, ключ
+      // сменили, и чужие строки на странице оказались бы у нового владельца.
+      if (apiKeyValue() !== key) { throw new Error("stale"); }
+      if (r.status === 401) {
+        setKeyState("bad");
+        throw new Error("bad-key");
+      }
+      if (r.status !== 200) { throw new Error("status " + r.status); }
+      setKeyState("ok");
+      return r.json();
+    });
+}
+
+// resetOwnerState забывает всё, что пришло под прежним ключом: история,
+// журнал и трассировка принадлежат владельцу ключа и после его смены на
+// странице оставаться не должны.
+function resetOwnerState() {
+  journalSeq = 0;
+  journalRows = [];
+  journalPrimed = false;
+  journalUnseen = 0;
+  historySig = "";
+  selectedRequest = "";
+  lastRunId = "";
+  clearNode(el(ID_HISTORY_ROWS));
+  clearNode(el("journal"));
+  el(ID_TRACE_BLOCK).hidden = true;
+  el("traceMiss").hidden = true;
+  el("toTrace").hidden = true;
+  renderLogsBadge();
+}
+
+// ── Вкладки ─────────────────────────────────────────────────────────────────
+//
+// Вкладка живёт в location.hash: сервер отдаёт одну страницу по GET /, а
+// ссылка «/#dashboard» открывает нужную вкладку, и кнопка «Назад» браузера
+// возвращает к предыдущей. Имена вкладок не совпадают ни с одним id на
+// странице — иначе браузер прокрутил бы к одноимённому элементу.
+var TABS = ["jury", "dashboard", "history", "logs", "config"];
+var activeTab = "";
+
+function tabFromHash() {
+  var h = location.hash.replace(/^#/, "");
+  return TABS.includes(h) ? h : "jury";
+}
+
+function navigate(id) {
+  showTab(id);
+  if (location.hash !== "#" + id) { location.hash = id; }
+}
+
+// showTab переключает панели. Данные вкладки дорисовываются при входе:
+// графики на скрытой панели не строятся — у неё нулевая ширина.
+function showTab(id) {
+  if (!TABS.includes(id)) { id = "jury"; }
+  if (id === activeTab) { return; }
+  activeTab = id;
+  TABS.forEach(function (t) {
+    var on = t === id;
+    el("panel-" + t).hidden = !on;
+    var b = el("tab-" + t);
+    b.className = on ? "tab on" : "tab";
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+  });
+  hideTip();
+
+  if (id === "dashboard") {
+    refreshService();
+    renderDashboard();
+  } else if (id === "history") {
+    refreshHistory();
+  } else if (id === "logs") {
+    journalUnseen = 0;
+    renderLogsBadge();
+    renderJournal();
+  } else if (id === "config") {
+    refreshConfig();
+    renderConfig();
+  }
+  // Зритель не должен оказаться посреди чужой вкладки: если страница
+  // прокручена ниже полосы вкладок, она возвращается к её началу. Прокрутка —
+  // после отрисовки: у ещё пустой панели браузер урезал бы её до нуля.
+  var top = document.querySelector(".topbar").offsetHeight;
+  if (window.scrollY > top) { window.scrollTo(0, top); }
+}
+
+function renderLogsBadge() {
+  var b = el("logsBadge");
+  b.hidden = journalUnseen === 0;
+  b.textContent = journalUnseen > 99 ? "99+" : String(journalUnseen);
+  b.title = "новых предупреждений и ошибок: " + journalUnseen;
+}
+
+// goTrace открывает трассировку запроса на вкладке истории — из журнала и
+// после прогона.
+function goTrace(id) {
+  if (!id) { return; }
+  navigate("history");
+  openTrace(id, true, true);
+}
+
+// ── Форматирование ──────────────────────────────────────────────────────────
+
+function pad2(n) { return n < 10 ? "0" + n : String(n); }
+
+function fmtRate(v) {
+  if (v === null || v === undefined || !isFinite(v)) { return "—"; }
+  return v >= 100 ? fmtInt(v) : v.toFixed(1).replace(".", ",");
+}
+
+function fmtBytes(v) {
+  if (v === null || v === undefined || !isFinite(v)) { return "—"; }
+  if (v < 1024) { return fmtInt(v) + " Б"; }
+  var units = ["КБ", "МБ", "ГБ"];
+  var i = -1;
+  do { v /= 1024; i++; } while (v >= 1024 && i < units.length - 1);
+  return v.toFixed(1).replace(".", ",") + " " + units[i];
+}
+
+// pct печатает долю: «> 99,9 %», если до ста процентов не хватает хотя бы
+// одного запроса — округление до «100 %» спрятало бы отказ.
+function pct(n, total) {
+  if (!(total > 0)) { return "—"; }
+  var v = n / total * 100;
+  if (v > 0 && v < 0.1) { return "< 0,1 %"; }
+  var s = v.toFixed(1);
+  if (n < total && s === "100.0") { return "> 99,9 %"; }
+  if (s.slice(-2) === ".0") { s = s.slice(0, -2); }
+  return s.replace(".", ",") + " %";
+}
+
+function fmtUptime(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  var d = Math.floor(sec / 86400);
+  var h = Math.floor(sec % 86400 / 3600);
+  var m = Math.floor(sec % 3600 / 60);
+  if (d > 0) { return d + " д " + h + " ч"; }
+  if (h > 0) { return h + " ч " + m + " мин"; }
+  if (m > 0) { return m + " мин " + (sec % 60) + " с"; }
+  return sec + " с";
+}
+
+function fmtDateTime(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return iso || "—"; }
+  return pad2(d.getDate()) + "." + pad2(d.getMonth() + 1) + " " + shortTime(iso).slice(0, 8);
+}
+
+function lastValue(values) {
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (values[i] !== null && isFinite(values[i])) { return values[i]; }
+  }
+  return null;
+}
+
+function emptyNote(box, text) {
+  clearNode(box);
+  box.appendChild(tag("div", "ch-empty", text));
+}
+
+// ── Метрики ─────────────────────────────────────────────────────────────────
+
+// Имена эндпоинтов, операций и исходов совпадают с метками экспозиции
+// (internal/obs/metrics.go): наборы перечислимы, свободного текста в них нет.
+var ENDPOINTS = [
+  { id: "process", name: "/process", note: "контракт проверяющей системы" },
+  { id: "chat_completions", name: "/v1/chat/completions", note: "прокси к модели" },
+  { id: "mask", name: "/api/v1/mask", note: "явное маскирование" },
+  { id: "unmask", name: "/api/v1/unmask", note: "явное восстановление" },
+  { id: "analyze", name: "/api/v1/analyze", note: "разбор на этом стенде" }
+];
+var OPS = {
+  mask: "маскирование",
+  mask_retry: "повтор маскирования",
+  mask_conflict: "конфликт payload_id",
+  unmask: "восстановление",
+  proxy: "прокси к модели"
+};
+// Исходы окрашены по смыслу состояния, а не по порядку: зелёный — успех,
+// жёлтый — предупреждение, оранжевый — серьёзно, красный — отказ защиты.
+// Ошибки клиента — нейтральный серый: это не сбой сервиса. Цвет не
+// единственный признак — у каждого исхода в легенде есть значок и имя.
+var OUTCOMES = [
+  { id: "ok", name: "успешно", cls: "o-ok", icon: "✓" },
+  { id: "degraded", name: "безопасный откат — строка замаскирована целиком", cls: "o-serious", icon: "!" },
+  { id: "overloaded", name: "перегрузка — 429 с Retry-After", cls: "o-warn", icon: "!" },
+  { id: "fail_closed", name: "отказ защиты — наружу не ушло ничего", cls: "o-crit", icon: "✗" },
+  { id: "upstream_error", name: "ошибка модели", cls: "o-serious", icon: "!" },
+  { id: "bad_request", name: "некорректный запрос", cls: "o-neutral", icon: "·" },
+  { id: "client_gone", name: "клиент закрыл соединение", cls: "o-neutral2", icon: "·" }
+];
+
+// Окно графиков — пять минут: 150 опросов по две секунды.
+var WINDOW_MS = 5 * 60 * 1000;
+var SNAP_MAX = WINDOW_MS / POLL_MS + 1;
+var snaps = [];
+var epFilter = "";
+var epSeen = {};
+
+// labelValue достаёт значение метки из набора вида endpoint="process",le="0.1".
+function labelValue(labels, name) {
+  for (var part of labels.split(",")) {
+    var eq = part.indexOf("=");
+    if (eq > 0 && part.slice(0, eq) === name) {
+      return part.slice(eq + 1).replace(/"/g, "");
+    }
+  }
+  return "";
+}
+
+function epOf(s, id) {
+  if (!own(s.ep, id)) {
+    s.ep[id] = { req: 0, err: 0, sum: 0, count: 0, buckets: {}, ops: {}, outcomes: {} };
+  }
+  return s.ep[id];
+}
+
+// parseProm разбирает текстовую экспозицию Prometheus в снимок.
+//
+// Разбирается только то, что нужно дашборду; всё остальное пропускается.
+// Гистограмма уже накопительная внутри одного набора меток, поэтому сумма по
+// наборам для каждой границы остаётся накопительной, и перцентиль по ней
+// считается напрямую. Показатели без меток — хранилище, рантайм — ложатся в g
+// под своими именами.
+// promSample разбирает одну строку экспозиции в { metric, labels, value };
+// комментарии, пустые строки и нечисловые значения дают null.
+function promSample(line) {
+  if (line === "" || line.charAt(0) === "#") { return null; }
+  var sp = line.lastIndexOf(" ");
+  if (sp < 0) { return null; }
+  var value = parseFloat(line.slice(sp + 1));
+  if (!isFinite(value)) { return null; }
+
+  var head = line.slice(0, sp);
+  var brace = head.indexOf("{");
+  if (brace < 0) { return { metric: head, labels: "", value: value }; }
+  return {
+    metric: head.slice(0, brace),
+    labels: head.slice(brace + 1, head.lastIndexOf("}")),
+    value: value
+  };
+}
+
+function addRequestSample(s, labels, value) {
+  var e = epOf(s, labelValue(labels, "endpoint"));
+  var op = labelValue(labels, "op");
+  var out = labelValue(labels, "outcome");
+  e.req += value;
+  if (out !== "ok") { e.err += value; }
+  e.ops[op] = (e.ops[op] || 0) + value;
+  e.outcomes[out] = (e.outcomes[out] || 0) + value;
+}
+
+function addBucketSample(s, labels, value) {
+  var b = epOf(s, labelValue(labels, "endpoint")).buckets;
+  var le = labelValue(labels, "le");
+  b[le] = (b[le] || 0) + value;
+}
+
+// addSample раскладывает одно значение экспозиции по полям снимка.
+function addSample(s, metric, labels, value) {
+  if (metric === "aigw_requests_total") { addRequestSample(s, labels, value); }
+  else if (metric === "aigw_request_duration_seconds_sum") { epOf(s, labelValue(labels, "endpoint")).sum += value; }
+  else if (metric === "aigw_request_duration_seconds_count") { epOf(s, labelValue(labels, "endpoint")).count += value; }
+  else if (metric === "aigw_request_duration_seconds_bucket") { addBucketSample(s, labels, value); }
+  else if (metric === "aigw_tokens_in_total" || metric === "aigw_tokens_out_total") { s.tokens += value; }
+  else if (metric === "aigw_llm_duration_seconds_sum") { s.llmSum += value; }
+  else if (metric === "aigw_llm_duration_seconds_count") { s.llmCount += value; }
+  else if (metric === "aigw_pii_detected_total") { s.piiDet[labelValue(labels, "type")] = value; }
+  else if (metric === "aigw_pii_masked_total") { s.piiMask[labelValue(labels, "type")] = value; }
+  else if (labels === "") { s.g[metric] = value; }
+}
+
+function parseProm(text) {
+  var s = { at: Date.now(), ep: {}, tokens: 0, llmSum: 0, llmCount: 0, piiDet: {}, piiMask: {}, g: {} };
+  for (var line of text.split("\n")) {
+    var smp = promSample(line);
+    if (smp !== null) { addSample(s, smp.metric, smp.labels, smp.value); }
+  }
+  return s;
+}
+
+function addInto(dst, src) {
+  for (var k in src) {
+    if (own(src, k)) { dst[k] = (dst[k] || 0) + src[k]; }
+  }
+}
+
+// agg складывает эндпоинты снимка, попавшие под фильтр ("" — все).
+function agg(s, f) {
+  var a = { req: 0, err: 0, sum: 0, count: 0, buckets: {}, ops: {}, outcomes: {} };
+  for (var id in s.ep) {
+    if (!own(s.ep, id) || (f !== "" && id !== f)) { continue; }
+    var e = s.ep[id];
+    a.req += e.req;
+    a.err += e.err;
+    a.sum += e.sum;
+    a.count += e.count;
+    addInto(a.buckets, e.buckets);
+    addInto(a.ops, e.ops);
+    addInto(a.outcomes, e.outcomes);
+  }
+  return a;
+}
+
+function subBuckets(b, a) {
+  var out = {};
+  for (var k in b) {
+    if (own(b, k)) { out[k] = b[k] - (a[k] || 0); }
+  }
+  return out;
+}
+
+// quantile берёт перцентиль по накопительным корзинам гистограммы.
+function quantile(buckets, total, q) {
+  if (total <= 0) { return null; }
+  var bounds = Object.keys(buckets).filter(function (b) { return b !== "+Inf"; });
+  bounds.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+  var want = total * q;
+  for (var bound of bounds) {
+    if (buckets[bound] >= want) { return parseFloat(bound) * 1000; }
+  }
+  return null;
+}
+
+// seriesOf выводит ряды по интервалам между соседними снимками. Ряды не
+// хранятся, а считаются при каждой отрисовке: смена фильтра эндпоинта
+// пересчитывает все графики сразу, без ожидания новых опросов.
+function seriesOf(f) {
+  var out = { t: [], rps: [], err: [], avg: [], p95: [], tps: [], llm: [], total: [] };
+  for (var i = 1; i < snaps.length; i++) {
+    var a = snaps[i - 1];
+    var b = snaps[i];
+    var dt = (b.at - a.at) / 1000;
+    if (dt <= 0) { continue; }
+    var A = agg(a, f);
+    var B = agg(b, f);
+    var dc = B.count - A.count;
+    var dl = b.llmCount - a.llmCount;
+    out.t.push(b.at);
+    out.rps.push((B.req - A.req) / dt);
+    out.err.push((B.err - A.err) / dt);
+    out.avg.push(dc > 0 ? (B.sum - A.sum) / dc * 1000 : null);
+    out.p95.push(dc > 0 ? quantile(subBuckets(B.buckets, A.buckets), dc, 0.95) : null);
+    out.tps.push((b.tokens - a.tokens) / dt);
+    out.llm.push(dl > 0 ? (b.llmSum - a.llmSum) / dl * 1000 : null);
+    out.total.push(B.req);
+  }
+  return out;
+}
+
+function gaugeSeries(name) {
+  return snaps.map(function (s) { return own(s.g, name) ? s.g[name] : null; });
+}
+
+function refreshMetrics() {
+  if (metricsBusy) { return Promise.resolve(); }
+  metricsBusy = true;
+  return fetch("/metrics", { headers: { "Accept": "text/plain" } })
+    .then(function (r) { return r.text(); })
+    .then(function (text) {
+      var s = parseProm(text);
+      var last = snaps.length ? snaps[snaps.length - 1] : null;
+      // Счётчики уменьшились — сервис перезапущен: дельты к старым снимкам
+      // вышли бы отрицательными, и ряды начинаются заново.
+      if (last !== null && agg(s, "").req < agg(last, "").req) { snaps = []; }
+      snaps.push(s);
+      if (snaps.length > SNAP_MAX) { snaps.shift(); }
+      registerEndpoints(s);
+      if (activeTab === "dashboard") { renderDashboard(); }
+    })
+    .catch(function () { /* сервис не ответил: показатели остаются прежними */ })
+    .then(function () { metricsBusy = false; });
+}
+
+// ── Состояние сервиса ───────────────────────────────────────────────────────
+
+var svc = { ok: null, health: null, ready: null, at: 0 };
+
+function getJSON(path) {
+  return fetch(path, { headers: { "Accept": JSON_TYPE } })
+    .then(function (r) {
+      if (r.status !== 200) { throw new Error("status " + r.status); }
+      return r.json();
+    });
+}
+
+function refreshService() {
+  if (serviceBusy) { return Promise.resolve(); }
+  serviceBusy = true;
+  return Promise.all([getJSON("/healthz"), getJSON("/readyz")])
+    .then(function (res) { svc = { ok: true, health: res[0], ready: res[1], at: Date.now() }; })
+    .catch(function () { svc.ok = false; })
+    .then(function () {
+      serviceBusy = false;
+      if (activeTab === "dashboard") { renderServiceBar(); }
+      if (activeTab === "config") { renderConfig(); }
+    });
+}
+
+function uptimeNow() {
+  return svc.health ? fmtUptime(svc.health.uptime_sec + (Date.now() - svc.at) / 1000) : "—";
+}
+
+function renderServiceBar() {
+  var h = el("svcHealth");
+  if (svc.ok === null) {
+    h.className = "chip";
+    h.textContent = "состояние сервиса — ждём ответ";
+  } else if (svc.ok) {
+    h.className = "chip good";
+    h.textContent = "✓ сервис отвечает";
+  } else {
+    h.className = "chip bad";
+    h.textContent = "✗ сервис не отвечает";
+  }
+  if (!svc.health) { return; }
+  el("svcVersion").textContent = svc.health.version || "—";
+  el("svcUptime").textContent = uptimeNow();
+  el("svcLoaded").textContent = fmtDateTime(svc.ready.config_loaded_at);
+  el("svcStore").textContent = fmtInt(svc.ready.store_entries);
+}
+
+// ── Графики ─────────────────────────────────────────────────────────────────
+//
+// Библиотек нет и быть не может: политика безопасности страницы запрещает
+// загрузку любых ресурсов. Линейные графики — встроенный SVG, бары и столбцы —
+// блоки с шириной в процентах. Пространство имён SVG берётся у значка в шапке,
+// а не пишется строкой: адрес пространства имён выглядит как внешняя ссылка,
+// и тест самодостаточности страницы справедливо его не пропускает.
+var SVGNS = document.querySelector(".brand-mark svg").namespaceURI;
+
+function svgEl(name, attrs, parent) {
+  var n = document.createElementNS(SVGNS, name);
+  for (var k in attrs) {
+    if (own(attrs, k)) { n.setAttribute(k, attrs[k]); }
+  }
+  if (parent) { parent.appendChild(n); }
+  return n;
+}
+
+// Всплывающая подсказка одна на страницу. Она дополняет подписи, а не
+// заменяет их: каждое значение видно и без наведения — в легенде, на конце
+// бара или в таблице.
+var tipNode = null;
+var tipFrom = "";
+
+function showTip(x, y, title, rows, from) {
+  if (tipNode === null) {
+    tipNode = tag("div", "viztip");
+    tipNode.setAttribute("role", "tooltip");
+    document.body.appendChild(tipNode);
+  }
+  tipFrom = from;
+  clearNode(tipNode);
+  if (title) { tipNode.appendChild(tag("div", "tt", title)); }
+  rows.forEach(function (r) {
+    var row = tag("div", "tr");
+    if (r.key) { row.appendChild(tag("i", r.key)); }
+    row.appendChild(tag("b", "", r.value));
+    if (r.name) { row.appendChild(tag("span", "", r.name)); }
+    tipNode.appendChild(row);
+  });
+  tipNode.hidden = false;
+  var w = tipNode.offsetWidth;
+  var h = tipNode.offsetHeight;
+  var left = x + 18;
+  var top = y + 18;
+  if (left + w > window.innerWidth - 8) { left = x - w - 18; }
+  if (top + h > window.innerHeight - 8) { top = y - h - 18; }
+  tipNode.style.left = Math.max(8, left) + "px";
+  tipNode.style.top = Math.max(8, top) + "px";
+}
+
+function hideTip() {
+  if (tipNode !== null) { tipNode.hidden = true; }
+  tipFrom = "";
+}
+
+// niceStep округляет шаг шкалы до 1, 2, 2,5 или 5 на степень десяти:
+// деления «0 · 250 · 500 · 750» читаются с задних рядов, «0 · 237 · 474» — нет.
+function niceStep(raw) {
+  if (!(raw > 0)) { return 1; }
+  var p = Math.pow(10, Math.floor(Math.log10(raw)));
+  var f = raw / p;
+  var n = 10;
+  if (f <= 1) { n = 1; }
+  else if (f <= 2) { n = 2; }
+  else if (f <= 2.5) { n = 2.5; }
+  else if (f <= 5) { n = 5; }
+  return n * p;
+}
+
+function yScale(max) {
+  var step = niceStep(max / 3);
+  var n = Math.max(1, Math.ceil(max / step - 1e-9));
+  var ticks = [];
+  for (var i = 0; i <= n; i++) { ticks.push(i * step); }
+  return { top: n * step, step: step, ticks: ticks };
+}
+
+// fmtTick печатает деление шкалы с точностью шага: «0 · 20 · 40», а не
+// «0,0 · 20,0 · 40,0»; при шаге 0,02 — «0,02 · 0,04».
+function fmtTick(v, step) {
+  var digits = 0;
+  while (digits < 4 && Math.abs(Math.round(step * Math.pow(10, digits)) - step * Math.pow(10, digits)) > 1e-9) { digits++; }
+  return group(v.toFixed(digits)).replace(".", ",");
+}
+
+function chartLegend(box, series, fmt) {
+  clearNode(box);
+  series.forEach(function (s) {
+    var item = tag("span", "lg");
+    item.appendChild(tag("i", "key k-" + s.cls));
+    item.appendChild(document.createTextNode(s.name + " "));
+    var v = lastValue(s.values);
+    item.appendChild(tag("b", "", v === null ? "—" : fmt(v)));
+    box.appendChild(item);
+  });
+}
+
+// lineChart рисует ряды во времени за последние WINDOW_MS.
+//
+// Шкала времени фиксированная — пять минут до «сейчас»: пока данных мало,
+// линия честно занимает правую часть, а не растягивает десять секунд на весь
+// график. Ось одна: ряды на одном графике всегда в одних единицах, разные
+// величины — разные графики. Перекрестие находит ближайший опрос по времени:
+// целиться в линию толщиной 2 px не нужно.
+function isNum(v) { return v !== null && v !== undefined && isFinite(v); }
+
+// seriesMax — наибольшее значение рядов внутри окна графика.
+function seriesMax(o, t0) {
+  var max = 0;
+  o.series.forEach(function (s) {
+    s.values.forEach(function (v, i) {
+      if (isNum(v) && o.t[i] >= t0 && v > max) { max = v; }
+    });
+  });
+  return max;
+}
+
+// chartFrame — геометрия линейного графика: размеры, поля, шкала и
+// преобразования времени и значения в координаты.
+function chartFrame(box, o, now) {
+  var g = { now: now, t0: now - WINDOW_MS, W: Math.max(box.clientWidth, 260), H: 250 };
+  g.pad = { l: 66, r: 16, t: 12, b: 34 };
+  g.pw = g.W - g.pad.l - g.pad.r;
+  g.ph = g.H - g.pad.t - g.pad.b;
+  g.sc = yScale(seriesMax(o, g.t0));
+  g.X = function (t) { return g.pad.l + (t - g.t0) / WINDOW_MS * g.pw; };
+  g.Y = function (v) { return g.pad.t + g.ph - v / g.sc.top * g.ph; };
+  return g;
+}
+
+function drawYTicks(svg, g) {
+  g.sc.ticks.forEach(function (v) {
+    var y = Math.round(g.Y(v)) + 0.5;
+    svgEl("line", { x1: g.pad.l, x2: g.W - g.pad.r, y1: y, y2: y, "class": v === 0 ? "ch-axis" : "ch-grid" }, svg);
+    svgEl("text", { x: g.pad.l - 10, y: y + 5, "text-anchor": "end", "class": "ch-lbl" }, svg).textContent = fmtTick(v, g.sc.step);
+  });
+}
+
+// markAnchor выравнивает подпись шкалы времени: крайние — к краю графика.
+function markAnchor(m) {
+  if (m === 5) { return "start"; }
+  return m === 0 ? "end" : "middle";
+}
+
+function drawTimeMarks(svg, g) {
+  var marks = g.W < 540 ? [5, 2.5, 0] : [5, 4, 3, 2, 1, 0];
+  marks.forEach(function (m) {
+    svgEl("text", { x: g.X(g.now - m * 60000), y: g.H - 8, "text-anchor": markAnchor(m), "class": "ch-lbl" }, svg)
+      .textContent = m === 0 ? "сейчас" : "−" + String(m).replace(".", ",") + " мин";
+  });
+}
+
+// seriesSegments режет ряд на непрерывные отрезки точек внутри окна: пропуск
+// значения рвёт линию, а не соединяет соседей через дыру.
+function seriesSegments(s, o, g) {
+  var segs = [];
+  var cur = [];
+  o.t.forEach(function (t, i) {
+    var v = s.values[i];
+    if (t < g.t0 || !isNum(v)) {
+      if (cur.length) { segs.push(cur); cur = []; }
+      return;
+    }
+    cur.push([g.X(t), g.Y(v)]);
+  });
+  if (cur.length) { segs.push(cur); }
+  return segs;
+}
+
+function drawSegment(svg, s, pts, g) {
+  var d = pts.map(function (p, k) { return (k ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join("");
+  if (s.area && pts.length > 1) {
+    var base = g.Y(0).toFixed(1);
+    svgEl("path", {
+      d: d + "L" + pts[pts.length - 1][0].toFixed(1) + " " + base + "L" + pts[0][0].toFixed(1) + " " + base + "Z",
+      "class": "ar k-" + s.cls
+    }, svg);
+  }
+  if (pts.length === 1) {
+    svgEl("circle", { cx: pts[0][0], cy: pts[0][1], r: 2.5, "class": "dot " + s.cls }, svg);
+  } else {
+    svgEl("path", { d: d, "class": "ln " + s.cls }, svg);
+  }
+}
+
+function drawSeries(svg, s, o, g) {
+  var segs = seriesSegments(s, o, g);
+  segs.forEach(function (pts) { drawSegment(svg, s, pts, g); });
+  var tail = segs.length ? segs[segs.length - 1] : null;
+  if (tail) {
+    var lastPt = tail[tail.length - 1];
+    svgEl("circle", { cx: lastPt[0], cy: lastPt[1], r: 4.5, "class": "dot " + s.cls }, svg);
+  }
+}
+
+// nearestPoll — индекс опроса внутри окна, ближайшего к координате x.
+function nearestPoll(o, g, x) {
+  var best = -1;
+  var bd = Infinity;
+  o.t.forEach(function (t, i) {
+    if (t < g.t0) { return; }
+    var dx = Math.abs(g.X(t) - x);
+    if (dx < bd) { bd = dx; best = i; }
+  });
+  return best;
+}
+
+// hoverRow ставит точку ряда под перекрестием и возвращает строку подсказки.
+function hoverRow(ctx, s, k, best, px) {
+  var v = s.values[best];
+  var dot = ctx.hdots[k];
+  if (!isNum(v)) {
+    dot.setAttribute(ATTR_VISIBILITY, "hidden");
+    return { key: "key k-" + s.cls, value: "—", name: s.name };
+  }
+  dot.setAttribute("cx", px);
+  dot.setAttribute("cy", ctx.g.Y(v));
+  dot.setAttribute(ATTR_VISIBILITY, "visible");
+  return { key: "key k-" + s.cls, value: ctx.o.fmt(v) + " " + ctx.o.unit, name: s.name };
+}
+
+function chartHover(ctx, cx, cy) {
+  var r = ctx.svg.getBoundingClientRect();
+  if (r.width === 0) { return; }
+  var x = (cx - r.left) * (ctx.g.W / r.width);
+  var best = nearestPoll(ctx.o, ctx.g, x);
+  if (best < 0) { return; }
+  var px = ctx.g.X(ctx.o.t[best]);
+  ctx.cross.setAttribute("x1", px);
+  ctx.cross.setAttribute("x2", px);
+  ctx.cross.setAttribute(ATTR_VISIBILITY, "visible");
+  var rows = ctx.o.series.map(function (s, k) { return hoverRow(ctx, s, k, best, px); });
+  showTip(cx, cy, shortTime(ctx.o.t[best]).slice(0, 8), rows, "line");
+}
+
+function bindChartHover(ctx, hit) {
+  var box = ctx.box;
+  var track = function (ev) {
+    box._hover = { x: ev.clientX, y: ev.clientY };
+    chartHover(ctx, ev.clientX, ev.clientY);
+  };
+  hit.addEventListener("pointermove", track);
+  hit.addEventListener("pointerdown", track);
+  hit.addEventListener("pointerleave", function () {
+    box._hover = null;
+    hideTip();
+  });
+}
+
+function lineChart(box, legend, o) {
+  if (legend) { chartLegend(legend, o.series, o.fmt); }
+  var now = Date.now();
+  var t0 = now - WINDOW_MS;
+  var visible = o.t.filter(function (t) { return t >= t0; }).length;
+  if (visible === 0) {
+    emptyNote(box, "Данных пока нет: график строится по опросу /metrics раз в 2 секунды с момента открытия страницы.");
+    return;
+  }
+
+  var g = chartFrame(box, o, now);
+  var svg = svgEl("svg", {
+    viewBox: "0 0 " + g.W + " " + g.H, width: g.W, height: g.H,
+    role: "img", "aria-label": o.aria
+  });
+
+  drawYTicks(svg, g);
+  drawTimeMarks(svg, g);
+  o.series.forEach(function (s) { drawSeries(svg, s, o, g); });
+
+  var cross = svgEl("line", { x1: 0, x2: 0, y1: g.pad.t, y2: g.pad.t + g.ph, "class": "ch-cross", visibility: "hidden" }, svg);
+  var hdots = o.series.map(function (s) {
+    return svgEl("circle", { r: 5.5, "class": "dot " + s.cls, visibility: "hidden" }, svg);
+  });
+  var hit = svgEl("rect", { x: g.pad.l, y: 0, width: g.pw, height: g.H, "class": "ch-hit" }, svg);
+  var ctx = { box: box, svg: svg, o: o, g: g, cross: cross, hdots: hdots };
+  bindChartHover(ctx, hit);
+
+  clearNode(box);
+  box.appendChild(svg);
+  // График перерисовывается каждые две секунды; перекрестие под неподвижным
+  // курсором не должно пропадать на каждом опросе.
+  if (box._hover) { chartHover(ctx, box._hover.x, box._hover.y); }
+}
+
+// sparkline — линия тренда под числом. Шкала от нуля: от минимума к
+// максимуму она раздувала бы шум в полпроцента до «обвала».
+function sparkline(box, values) {
+  var W = Math.max(box.clientWidth, 60);
+  var H = 38;
+  var max = 0;
+  var valid = 0;
+  values.forEach(function (v) {
+    if (v !== null && isFinite(v)) { valid++; if (v > max) { max = v; } }
+  });
+  clearNode(box);
+  if (valid < 2) { return; }
+  if (max <= 0) { max = 1; }
+  var step = W / (SNAP_MAX - 1);
+  var x0 = W - (values.length - 1) * step;
+  var d = "";
+  var pen = false;
+  var last = null;
+  values.forEach(function (v, i) {
+    if (v === null || !isFinite(v)) { pen = false; return; }
+    var x = x0 + i * step;
+    var y = 4 + (H - 8) * (1 - v / max);
+    d += (pen ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    pen = true;
+    last = [x, y];
+  });
+  var svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H, "aria-hidden": "true" });
+  svgEl("path", { d: d, "class": "ln spk" }, svg);
+  if (last) { svgEl("circle", { cx: last[0], cy: last[1], r: 4, "class": "dot s1" }, svg); }
+  box.appendChild(svg);
+}
+
+// hbars рисует горизонтальные бары: подпись слева, дорожка, значение справа.
+// Сегменты одной строки разделены зазором цвета фона, а не рамкой.
+function hbars(box, rows) {
+  clearNode(box);
+  var list = tag("div", "hb");
+  rows.forEach(function (r) {
+    var row = tag("div", "hb-row" + (r.dim ? " dim" : ""));
+    var lbl = tag("div", "hb-lbl", r.label);
+    if (r.sub) { lbl.appendChild(tag("small", "", r.sub)); }
+    row.appendChild(lbl);
+
+    var track = tag("div", "hb-track");
+    r.segs.forEach(function (s) {
+      if (s.v <= 0) { return; }
+      var seg = tag("div", "hb-seg has-tip " + s.cls);
+      seg.style.width = (s.v / r.max * 100).toFixed(3) + "%";
+      seg._tip = { title: r.label, rows: [{ key: "sw " + s.cls, value: fmtInt(s.v), name: s.tip }] };
+      track.appendChild(seg);
+    });
+    row.appendChild(track);
+
+    var val = tag("div", "hb-val");
+    val.appendChild(tag("b", "", r.value));
+    if (r.valueSub) { val.appendChild(document.createTextNode(" · " + r.valueSub)); }
+    row.appendChild(val);
+    list.appendChild(row);
+  });
+  box.appendChild(list);
+}
+
+// ── Дашборд ─────────────────────────────────────────────────────────────────
+
+function typeName(key) { return piiLabel[key] || key; }
+
+function registerEndpoints(s) {
+  var changed = false;
+  ENDPOINTS.forEach(function (e) {
+    if (!epSeen[e.id] && own(s.ep, e.id) && s.ep[e.id].req > 0) {
+      epSeen[e.id] = true;
+      changed = true;
+    }
+  });
+  if (changed || el("epFilter").children.length === 0) { renderEpFilter(); }
+}
+
+function renderEpFilter() {
+  var box = el("epFilter");
+  clearNode(box);
+  var items = [{ id: "", name: "все эндпоинты" }];
+  ENDPOINTS.forEach(function (e) { if (epSeen[e.id]) { items.push(e); } });
+  items.forEach(function (e) {
+    var on = e.id === epFilter;
+    var b = tag("button", on ? "seg on" : "seg", e.name);
+    b.type = "button";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.addEventListener("click", function () {
+      epFilter = e.id;
+      renderEpFilter();
+      renderDashboard();
+    });
+    box.appendChild(b);
+  });
+}
+
+function renderDashboard() {
+  renderServiceBar();
+  if (snaps.length === 0) { return; }
+  var last = snaps[snaps.length - 1];
+  var A = agg(last, epFilter);
+  var sr = seriesOf(epFilter);
+  var n = sr.t.length;
+
+  el("mTotal").textContent = fmtInt(A.req);
+  el("mLatAvg").textContent = A.count > 0 ? fmtMs(A.sum / A.count * 1000) : "—";
+  var p95 = quantile(A.buckets, A.count, 0.95);
+  el("mLatP95").textContent = p95 === null ? "—" : "≤ " + fmtMs(p95);
+  el("mLlm").textContent = last.llmCount > 0 ? fmtMs(last.llmSum / last.llmCount * 1000) : "—";
+  el("mRps").textContent = n > 0 ? fmtRate(sr.rps[n - 1]) : "—";
+  el("mTps").textContent = n > 0 ? fmtInt(sr.tps[n - 1]) : "—";
+
+  sparkline(el("spLatAvg"), sr.avg);
+  sparkline(el("spLatP95"), sr.p95);
+  sparkline(el("spRps"), sr.rps);
+  sparkline(el("spTps"), sr.tps);
+  sparkline(el("spTotal"), sr.total);
+  sparkline(el("spLlm"), sr.llm);
+
+  var scope = epFilter === "" ? "все эндпоинты" : "эндпоинт " + epFilter;
+  lineChart(el("chRps"), el("lgRps"), {
+    t: sr.t, fmt: fmtRate, unit: "запр./с",
+    aria: "Запросы в секунду за 5 минут, " + scope,
+    series: [
+      { name: "все запросы", values: sr.rps, cls: "s1" },
+      { name: "с исходом не ok", values: sr.err, cls: "s2" }
+    ]
+  });
+  lineChart(el("chLat"), el("lgLat"), {
+    t: sr.t, fmt: fmtMs, unit: "мс",
+    aria: "Время ответа сервиса за 5 минут, " + scope,
+    series: [
+      { name: "средняя", values: sr.avg, cls: "s1" },
+      { name: "p95 — верхняя граница корзины", values: sr.p95, cls: "s2" }
+    ]
+  });
+  lineChart(el("chTps"), null, {
+    t: sr.t, fmt: fmtInt, unit: "ток./с",
+    aria: "Токены в секунду за 5 минут",
+    series: [{ name: "токенов в секунду", values: sr.tps, cls: "s1", area: true }]
+  });
+  renderHistogram(A);
+  renderPII(last);
+  renderOutcomes(A);
+  renderEndpoints(last);
+  renderRuntime(last);
+}
+
+// bucketLabel печатает границу корзины: границы заданы в секундах
+// (internal/obs/metrics.go), на экране — в привычных единицах.
+function bucketLabel(le) {
+  var s = parseFloat(le);
+  var v;
+  var unit;
+  if (s < 0.001) { v = s * 1e6; unit = "мкс"; }
+  else if (s < 1) { v = s * 1000; unit = "мс"; }
+  else { v = s; unit = "с"; }
+  return String(Number(v.toPrecision(3))).replace(".", ",") + " " + unit;
+}
+
+// renderHistogram показывает, в какие корзины времени попадают запросы.
+// Пустые корзины по краям отрезаются: восемнадцать столбцов, из которых
+// заполнены три, прятали бы форму распределения.
+// histogramCols переводит накопительные корзины в число запросов по каждой.
+function histogramCols(A, bounds) {
+  var cols = [];
+  var prev = 0;
+  bounds.forEach(function (b) {
+    cols.push({ label: "≤ " + bucketLabel(b), n: A.buckets[b] - prev });
+    prev = A.buckets[b];
+  });
+  var inf = own(A.buckets, "+Inf") ? A.buckets["+Inf"] : A.count;
+  cols.push({ label: "> " + bucketLabel(bounds[bounds.length - 1]), n: inf - prev });
+  return cols;
+}
+
+// trimCols отрезает пустые корзины по краям, оставляя не меньше шести
+// столбцов, пока есть что добавить.
+function trimCols(cols) {
+  var first = 0;
+  var last = cols.length - 1;
+  while (first < last && cols[first].n <= 0) { first++; }
+  while (last > first && cols[last].n <= 0) { last--; }
+  while (last - first < 5 && (first > 0 || last < cols.length - 1)) {
+    if (last < cols.length - 1) { last++; }
+    if (last - first < 5 && first > 0) { first--; }
+  }
+  return cols.slice(first, last + 1);
+}
+
+function histogramColumn(c, max, A) {
+  var col = tag("div", "col");
+  col.appendChild(tag("span", "col-val", c.n > 0 ? pct(c.n, A.count) : ""));
+  var bar = tag("div", "col-bar has-tip");
+  bar.style.height = (c.n > 0 ? Math.max(2, Math.round(c.n / max * 170)) : 0) + "px";
+  bar._tip = {
+    title: c.label,
+    rows: [{ key: "sw f-s1", value: fmtInt(c.n) + " · " + pct(c.n, A.count), name: plural(c.n, "запрос", "запроса", "запросов") }]
+  };
+  col.appendChild(bar);
+  return col;
+}
+
+function renderHistogram(A) {
+  var box = el("chHist");
+  var bounds = Object.keys(A.buckets).filter(function (b) { return b !== "+Inf"; });
+  bounds.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+  if (A.count <= 0 || bounds.length === 0) {
+    emptyNote(box, "Запросов под выбранный фильтр ещё не было.");
+    return;
+  }
+  var cols = trimCols(histogramCols(A, bounds));
+  var max = 1;
+  cols.forEach(function (c) { if (c.n > max) { max = c.n; } });
+
+  clearNode(box);
+  var plot = tag("div", "cols");
+  var lbls = tag("div", "col-lbls");
+  cols.forEach(function (c) {
+    plot.appendChild(histogramColumn(c, max, A));
+    lbls.appendChild(tag("span", "col-lbl", c.label));
+  });
+  box.appendChild(plot);
+  box.appendChild(lbls);
+}
+
+function renderPII(last) {
+  var box = el("chPii");
+  var keys = {};
+  var k;
+  for (k in last.piiDet) { if (own(last.piiDet, k)) { keys[k] = true; } }
+  for (k in last.piiMask) { if (own(last.piiMask, k)) { keys[k] = true; } }
+  var rows = Object.keys(keys).map(function (key) {
+    var det = last.piiDet[key] || 0;
+    var msk = last.piiMask[key] || 0;
+    var total = Math.max(det, msk);
+    return { key: key, det: det, msk: msk, open: Math.max(0, total - msk), total: total };
+  });
+  if (rows.length === 0) {
+    emptyNote(box, "Персональные данные ещё не встречались: прогоните текст на вкладке «Проверка жюри» или дайте нагрузку на /process.");
+    return;
+  }
+  rows.sort(function (a, b) { return b.total - a.total || typeName(a.key).localeCompare(typeName(b.key)); });
+  var max = rows[0].total;
+  hbars(box, rows.map(function (r) {
+    return {
+      label: typeName(r.key),
+      max: max,
+      segs: [
+        { v: r.msk, cls: "f-mask", tip: "замаскировано" },
+        { v: r.open, cls: "f-open", tip: "найдено, политика потребителя не маскирует" }
+      ],
+      value: fmtInt(r.det),
+      valueSub: r.open > 0 ? "не скрыто " + fmtInt(r.open) : ""
+    };
+  }));
+}
+
+function renderOutcomes(A) {
+  var box = el("chOut");
+  var total = 0;
+  OUTCOMES.forEach(function (o) { total += A.outcomes[o.id] || 0; });
+  if (total <= 0) {
+    emptyNote(box, "Запросов под выбранный фильтр ещё не было.");
+    return;
+  }
+  clearNode(box);
+  var okN = A.outcomes.ok || 0;
+  var head = tag("p", "bignum");
+  head.appendChild(tag("b", "", pct(okN, total)));
+  head.appendChild(document.createTextNode(" запросов завершились успешно — " + fmtInt(okN) + " из " + fmtInt(total)));
+  box.appendChild(head);
+
+  var bar = tag("div", "stack");
+  OUTCOMES.forEach(function (o) {
+    var n = A.outcomes[o.id] || 0;
+    if (n <= 0) { return; }
+    var seg = tag("div", "hb-seg has-tip " + o.cls);
+    seg.style.width = (n / total * 100).toFixed(3) + "%";
+    seg._tip = { title: o.id, rows: [{ key: "sw " + o.cls, value: fmtInt(n) + " · " + pct(n, total), name: o.name }] };
+    bar.appendChild(seg);
+  });
+  box.appendChild(bar);
+
+  var table = tag("table", "otable");
+  var body = document.createElement("tbody");
+  OUTCOMES.forEach(function (o) {
+    var n = A.outcomes[o.id] || 0;
+    if (n <= 0 && o.id !== "ok") { return; }
+    var tr = document.createElement("tr");
+    var name = tag("td", "");
+    name.appendChild(tag("i", "sw " + o.cls));
+    name.appendChild(tag("span", "oicon", o.icon));
+    name.appendChild(tag("code", "", o.id));
+    tr.appendChild(name);
+    tr.appendChild(tag("td", "", o.name));
+    tr.appendChild(tag("td", "num", fmtInt(n)));
+    tr.appendChild(tag("td", "num", pct(n, total)));
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+  var wrap = tag("div", "tscroll");
+  wrap.appendChild(table);
+  box.appendChild(wrap);
+}
+
+function renderEndpoints(last) {
+  var box = el("chEp");
+  var rows = [];
+  var max = 0;
+  var total = 0;
+  ENDPOINTS.forEach(function (e) {
+    var x = last.ep[e.id];
+    if (!x || x.req <= 0) { return; }
+    rows.push({ e: e, x: x });
+    if (x.req > max) { max = x.req; }
+    total += x.req;
+  });
+  if (rows.length === 0) {
+    emptyNote(box, "Запросов ещё не было.");
+    return;
+  }
+  hbars(box, rows.map(function (r) {
+    var ops = [];
+    Object.keys(OPS).forEach(function (op) {
+      if (r.x.ops[op] > 0) { ops.push(OPS[op] + " " + fmtInt(r.x.ops[op])); }
+    });
+    return {
+      label: r.e.name,
+      sub: r.e.note + (ops.length ? " · " + ops.join(" · ") : ""),
+      max: max,
+      segs: [{ v: r.x.req, cls: "f-s1", tip: "запросов" }],
+      value: fmtInt(r.x.req),
+      valueSub: pct(r.x.req, total),
+      dim: epFilter !== "" && epFilter !== r.e.id
+    };
+  }));
+}
+
+function setMetric(id, v, fmt) {
+  el(id).textContent = v === undefined || v === null ? "—" : fmt(v);
+}
+
+function renderRuntime(last) {
+  var g = last.g;
+  setMetric("stEntries", g.aigw_store_entries, fmtInt);
+  setMetric("stBytes", g.aigw_store_bytes, fmtBytes);
+  setMetric("stEvicted", g.aigw_store_evicted_total, fmtInt);
+  setMetric("stExpired", g.aigw_store_expired_total, fmtInt);
+  setMetric("rtHeap", g.aigw_go_heap_bytes, fmtBytes);
+  setMetric("rtMem", g.aigw_go_memory_bytes, fmtBytes);
+  setMetric("rtGor", g.aigw_go_goroutines, fmtInt);
+  el("rtGc").textContent = g.aigw_go_gc_cycles_total === undefined
+    ? "—"
+    : fmtInt(g.aigw_go_gc_cycles_total) + " · " + ((g.aigw_go_gc_cpu_fraction || 0) * 100).toFixed(2).replace(".", ",") + " %";
+  sparkline(el("spStEntries"), gaugeSeries("aigw_store_entries"));
+  sparkline(el("spHeap"), gaugeSeries("aigw_go_heap_bytes"));
+  sparkline(el("spGor"), gaugeSeries("aigw_go_goroutines"));
+}
+
+// ── Конфигурация ────────────────────────────────────────────────────────────
+
+function refreshConfig() {
+  refreshService();
+  loadConsumers();
+}
+
+function fact(dl, name, value) {
+  var d = document.createElement("div");
+  d.appendChild(tag("dt", "", name));
+  d.appendChild(tag("dd", "", value));
+  dl.appendChild(d);
+}
+
+function serviceStateText() {
+  if (svc.ok === null) { return "ждём ответ"; }
+  return svc.ok ? "✓ отвечает" : "✗ не отвечает";
+}
+
+function llmModeText() {
+  if (llmMode === "") { return "—"; }
+  return llmMode === "stub" ? "stub — без обращения к сети" : llmMode + " — реальная модель";
+}
+
+function renderServiceFacts(required) {
+  var dl = el("cfgService");
+  clearNode(dl);
+  fact(dl, "Состояние", serviceStateText());
+  fact(dl, "Версия", svc.health ? svc.health.version : "—");
+  fact(dl, "Работает", uptimeNow());
+  fact(dl, "Конфигурация загружена", svc.ready ? fmtDateTime(svc.ready.config_loaded_at) : "—");
+  fact(dl, "Режим модели", llmModeText());
+  fact(dl, "Соответствий в хранилище", svc.ready ? fmtInt(svc.ready.store_entries) : "—");
+  fact(dl, "Типов персональных данных", piiTypes.length ? piiTypes.length + ", из них по ТЗ — " + required : "—");
+  fact(dl, "Сканеров детекции", svc.ready ? String((svc.ready.scanners || []).length) : "—");
+}
+
+function consumerConfigRow(c) {
+  var tr = document.createElement("tr");
+  tr.appendChild(tag("td", "", c.id));
+  tr.appendChild(tag("td", c.enabled ? "yes" : "no", c.enabled ? "✓ включён" : "✗ отключён"));
+  var p = policyByConsumer[c.id];
+  if (!c.enabled || !p) {
+    var td = tag("td", "muted", c.enabled
+      ? "политика неизвестна до прогона под ключом"
+      : "запросы потребителя отклоняются");
+    td.colSpan = 4;
+    tr.appendChild(td);
+    return tr;
+  }
+  tr.appendChild(tag("td", "", p.profile));
+  tr.appendChild(tag("td", "", p.default_strategy));
+  tr.appendChild(tag("td", "num", String(p.masked_types)));
+  tr.appendChild(tag("td", p.demask ? "yes" : "no", p.demask ? "разрешено" : "запрещено"));
+  return tr;
+}
+
+function piiTypeRow(t) {
+  var tr = document.createElement("tr");
+  tr.appendChild(tag("td", "", t.label));
+  var key = tag("td", "");
+  key.appendChild(tag("code", "", t.key));
+  tr.appendChild(key);
+  var ph = tag("td", "");
+  ph.appendChild(tag("code", "", "[" + t.placeholder + "_1]"));
+  tr.appendChild(ph);
+  tr.appendChild(tag("td", t.required ? "yes" : "", t.required ? "✓ ТЗ §3.2.1" : "сверх ТЗ"));
+  return tr;
+}
+
+function renderConfig() {
+  var required = piiTypes.filter(function (t) { return t.required; }).length;
+  renderServiceFacts(required);
+
+  var body = el("cfgConsumers");
+  clearNode(body);
+  consumerList.forEach(function (c) { body.appendChild(consumerConfigRow(c)); });
+
+  el("cfgTypesHint").textContent = piiTypes.length
+    ? piiTypes.length + " " + plural(piiTypes.length, "тип", "типа", "типов") + " · " + required +
+      " обязательных по ТЗ, " + (piiTypes.length - required) + " сверх ТЗ"
+    : "";
+  var types = el("cfgTypes");
+  clearNode(types);
+  piiTypes.forEach(function (t) { types.appendChild(piiTypeRow(t)); });
+
+  var chips = el("cfgScanners");
+  clearNode(chips);
+  ((svc.ready && svc.ready.scanners) || []).forEach(function (s) {
+    chips.appendChild(tag("span", "chip", s));
+  });
+}
+
+// ── История запросов ────────────────────────────────────────────────────────
+
+// historySig — отпечаток отрисованной таблицы.
+//
+// Перерисовка выполняется только при изменении: иначе опрос заменял бы строки
+// каждые две секунды прямо под курсором, и щелчок между нажатием и отпусканием
+// кнопки не превращался бы в событие click — на демонстрации таблица выглядела
+// бы неотзывчивой без всякой видимой причины.
+var historySig = "";
+
+function refreshHistory() {
+  return authFetch("/api/v1/ui/history?limit=50")
+    .then(applyHistory)
+    .catch(historyError);
+}
+
+function historyRow(row) {
+  registerOutcome(row.outcome);
+  var tr = document.createElement("tr");
+  tr.className = "pick" + (row.request_id === selectedRequest ? " on" : "");
+  // Идентификатор кладётся в атрибут: обработчик щелчка один на всю
+  // таблицу и переживает перерисовку строк.
+  tr.setAttribute("data-rid", row.request_id);
+  appendCells(tr, [
+    [shortTime(row.at), ""],
+    [row.request_id, ""],
+    [row.consumer, ""],
+    [row.op + " · " + row.endpoint, ""],
+    [(row.types || []).join(", ") || "—", "types"],
+    [fmtMs(row.service_ms), "num"],
+    [row.llm_ms > 0 ? fmtMs(row.llm_ms) : "—", "num"],
+    [row.outcome + (row.degraded ? " · безопасный откат" : ""), row.outcome === "ok" ? "yes" : "no"]
+  ]);
+  return tr;
+}
+
+function applyHistory(data) {
+  if (!data.enabled) {
+    clearNode(el(ID_HISTORY_ROWS));
+    historySig = "";
+    el("histNote").textContent = "Буфер истории выключен настройкой.";
+    return;
+  }
+  el("histNote").textContent = "Показаны последние записи, доступные владельцу ключа. " +
+    "Вместимость кольцевого буфера: " + data.cap + " записей. Щёлкните по строке — откроется разбор запроса.";
+
+  var rows = data.rows || [];
+  var sig = rows.length + "|" + (rows.length ? rows[0].seq : 0) + "|" + selectedRequest;
+  if (sig === historySig) { return; }
+  historySig = sig;
+
+  var body = el(ID_HISTORY_ROWS);
+  clearNode(body);
+  if (rows.length === 0) {
+    var tr0 = document.createElement("tr");
+    var td0 = tag("td", "", "Записей пока нет. Прогоните текст через сервис.");
+    td0.colSpan = 8;
+    tr0.appendChild(td0);
+    body.appendChild(tr0);
+    return;
+  }
+  rows.forEach(function (row) { body.appendChild(historyRow(row)); });
+}
+
+function historyError(e) {
+  if (e && e.message === "no-key") {
+    el("histNote").textContent = "Укажите ключ доступа в шапке страницы — история и журнал отдаются только по ключу и только владельцу.";
+  } else if (e && e.message === "bad-key") {
+    el("histNote").textContent = "Ключ отклонён: сервис ответил 401, история не отдана.";
+  }
+}
+
+function appendCells(tr, cells) {
+  cells.forEach(function (c) {
+    tr.appendChild(tag("td", c[1], c[0]));
+  });
+}
+
+// shortTime печатает время записи без даты: на проекторе важны секунды.
+function shortTime(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) { return String(iso); }
+  function p(n, w) { var s = String(n); while (s.length < w) { s = "0" + s; } return s; }
+  return p(d.getHours(), 2) + ":" + p(d.getMinutes(), 2) + ":" + p(d.getSeconds(), 2) +
+    "." + p(d.getMilliseconds(), 3);
+}
+
+// ── Трассировка ─────────────────────────────────────────────────────────────
+
+// openTrace открывает разбор запроса по идентификатору.
+//
+// Повтор нужен из-за порядка на сервере: запись в кольцевой буфер выполняется
+// после отправки ответа, чтобы работа с буфером не входила во время, которое
+// видит клиент. Значит, сразу после прогона записи может ещё не быть, и первый
+// промах — не ошибка, а гонка на доли миллисекунды. reveal — трассировку
+// открыл сам зритель, и её нужно прокрутить в видимость.
+function openTrace(id, retry, reveal) {
+  selectedRequest = id;
+  authFetch("/api/v1/ui/trace?id=" + encodeURIComponent(id))
+    .then(function (data) {
+      renderTrace(data);
+      el("traceMiss").hidden = true;
+      if (reveal) { el(ID_TRACE_BLOCK).scrollIntoView({ block: "start" }); }
+    })
+    .catch(function (e) {
+      if (e && e.message === "stale") { return; }
+      if (retry !== false) {
+        setTimeout(function () { openTrace(id, false, reveal); }, 300);
+        return;
+      }
+      el(ID_TRACE_BLOCK).hidden = true;
+      if (reveal) {
+        el("traceMissText").textContent = "Запрос " + id + " не найден в истории: запись вытеснена " +
+          "из кольцевого буфера или принадлежит другому потребителю.";
+        el("traceMiss").hidden = false;
+      }
+    });
+}
+
+// appendTraceSpan добавляет строку этапа: подпись и полосу на общей шкале.
+// Узкой полосе подпись длительности ставится справа от неё, а не внутрь.
+function appendTraceSpan(box, sp, scale) {
+  var subCls = sp.depth > 0 ? " sub" : "";
+  var waitCls = sp.service ? "" : " wait";
+  box.appendChild(tag("div", "tname" + subCls + (sp.service ? "" : " outside"),
+    sp.label + (sp.service ? "" : " — вне времени сервиса")));
+
+  var lane = tag("div", "lane" + waitCls);
+  var at = sp.at_ms / scale * 100;
+  var width = Math.max(sp.ms / scale * 100, 0.4);
+
+  var bar = tag("div", "bar" + subCls + waitCls);
+  bar.style.left = at.toFixed(3) + "%";
+  bar.style.width = width.toFixed(3) + "%";
+  lane.appendChild(bar);
+
+  var lbl = tag("span", "barlabel", fmtMs(sp.ms));
+  if (width < 9) {
+    lbl.className = "barlabel out";
+    lbl.style.left = (at + width).toFixed(3) + "%";
+    lane.appendChild(lbl);
+  } else {
+    bar.appendChild(lbl);
+  }
+  box.appendChild(lane);
+}
+
+function renderTraceTypes(types) {
+  var body = el("traceTypes");
+  clearNode(body);
+  if (types.length === 0) {
+    var tr0 = document.createElement("tr");
+    var td0 = tag("td", "", "Персональных данных в этом запросе не найдено.");
+    td0.colSpan = 3;
+    tr0.appendChild(td0);
+    body.appendChild(tr0);
+  }
+  types.forEach(function (t) {
+    var tr = document.createElement("tr");
+    appendCells(tr, [[t.label, ""], [String(t.detected), "num"], [String(t.masked), "num"]]);
+    body.appendChild(tr);
+  });
+}
+
+function renderTrace(data) {
+  var box = el("trace");
+  clearNode(box);
+  var spans = data.spans || [];
+  var scale = data.total_ms > 0 ? data.total_ms : 1;
+
+  spans.forEach(function (sp) { appendTraceSpan(box, sp, scale); });
+
+  el("trService").textContent = fmtMs(data.service_ms);
+  el("trWait").textContent = fmtMs(data.wait_ms);
+  el("trTotal").textContent = fmtMs(data.total_ms);
+  var row = data.row || {};
+  el("traceFor").textContent = "запрос " + row.request_id + " · потребитель " + row.consumer +
+    " · исход " + row.outcome;
+
+  renderTraceTypes(data.types || []);
+
+  el(ID_TRACE_BLOCK).hidden = false;
+  refreshHistory();
+}
+
+// ── Поток журнала ───────────────────────────────────────────────────────────
+
+function registerOutcome(value) {
+  if (!value || outcomes[value]) { return; }
+  outcomes[value] = true;
+  var opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = value;
+  el("fOutcome").appendChild(opt);
+}
+
+function registerTypes(keys, labels) {
+  for (var i = 0; i < keys.length; i++) {
+    if (typeLabels[keys[i]]) { continue; }
+    typeLabels[keys[i]] = labels[i] || keys[i];
+    var opt = document.createElement("option");
+    opt.value = keys[i];
+    opt.textContent = typeLabels[keys[i]];
+    el("fType").appendChild(opt);
+  }
+}
+
+var JOURNAL_LIMIT = 200;
+
+function refreshJournal() {
+  if (journalBusy) { return Promise.resolve(); }
+  journalBusy = true;
+  return authFetch("/api/v1/ui/journal?after=" + journalSeq + "&limit=" + JOURNAL_LIMIT)
+    .then(applyJournal)
+    .catch(journalError)
+    .then(function () { journalBusy = false; });
+}
+
+// acceptJournalRow добавляет запись в поток и сообщает, была ли она новой.
+// Повторно пришедшая запись отбрасывается по номеру: это дешевле и надёжнее,
+// чем полагаться на то, что опросы не наложились.
+function acceptJournalRow(row) {
+  if (row.seq <= journalSeq) { return false; }
+  journalSeq = row.seq;
+  registerTypes(row.types || [], row.type_labels || []);
+  registerOutcome(row.outcome);
+  journalRows.push(row);
+  var alarming = row.level === "warn" || row.level === "error";
+  if (journalPrimed && activeTab !== "logs" && alarming) { journalUnseen++; }
+  return true;
+}
+
+function applyJournal(data) {
+  if (!data.enabled) {
+    el("jNote").textContent = "Буфер журнала выключен настройкой.";
+    return;
+  }
+  var rows = data.rows || [];
+  var added = 0;
+  rows.forEach(function (row) {
+    if (acceptJournalRow(row)) { added++; }
+  });
+  // Накопленное до открытия страницы может прийти в несколько порций;
+  // «новыми» записи становятся, когда очередная порция неполная.
+  if (rows.length < JOURNAL_LIMIT) { journalPrimed = true; }
+  // Страница держит не больше записей, чем буфер сервиса: иначе вкладка,
+  // открытая на всю демонстрацию, копила бы их без предела.
+  var cap = data.cap || 500;
+  if (journalRows.length > cap) { journalRows = journalRows.slice(journalRows.length - cap); }
+  el("jNote").textContent = "Записей в потоке: " + journalRows.length +
+    " из " + cap + ". Записи без потребителя — служебные, они принадлежат сервису. " +
+    "Щёлкните по идентификатору запроса — откроется его трассировка.";
+  renderLogsBadge();
+  if (added > 0 && activeTab === "logs") { renderJournal(); }
+}
+
+function journalError(e) {
+  if (e && e.message === "no-key") {
+    el("jNote").textContent = "Укажите ключ доступа в шапке страницы: поток журнала отдаётся только по ключу.";
+  } else if (e && e.message === "bad-key") {
+    el("jNote").textContent = "Ключ отклонён: сервис ответил 401, поток журнала не отдан.";
+  }
+}
+
+function journalMatches(row) {
+  var lvl = el("fLevel").value;
+  if (lvl !== "" && row.level !== lvl) { return false; }
+  var typ = el("fType").value;
+  if (typ !== "" && !(row.types || []).includes(typ)) { return false; }
+  var out = el("fOutcome").value;
+  if (out !== "" && row.outcome !== out) { return false; }
+  var q = el("fSearch").value.trim().toLowerCase();
+  if (q !== "") {
+    var hay = [row.message, row.request_id, row.consumer, row.endpoint, row.op, row.outcome]
+      .join(" ").toLowerCase();
+    if (!hay.includes(q)) { return false; }
+  }
+  return true;
+}
+
+function renderJournal() {
+  renderLevelCounts();
+  var box = el("journal");
+  clearNode(box);
+  var shown = 0;
+  for (var i = journalRows.length - 1; i >= 0; i--) {
+    var row = journalRows[i];
+    if (!journalMatches(row)) { continue; }
+    box.appendChild(journalNode(row));
+    shown++;
+  }
+  if (shown === 0) {
+    box.appendChild(tag("div", "empty", "Записей, подходящих под фильтр, нет."));
+  }
+}
+
+// renderLevelCounts — счётчики по уровням над потоком. Щелчок по счётчику
+// ставит фильтр уровня, повторный — снимает.
+function renderLevelCounts() {
+  var box = el("lvlCounts");
+  clearNode(box);
+  var n = { debug: 0, info: 0, warn: 0, error: 0 };
+  journalRows.forEach(function (r) { if (own(n, r.level)) { n[r.level]++; } });
+  var cur = el("fLevel").value;
+  ["info", "warn", "error", "debug"].forEach(function (lvl) {
+    if (lvl === "debug" && n.debug === 0) { return; }
+    var on = cur === lvl;
+    var b = tag("button", "lvlbtn " + lvl + (on ? " on" : ""), lvl + " · " + fmtInt(n[lvl]));
+    b.type = "button";
+    b.setAttribute("data-level", lvl);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    box.appendChild(b);
+  });
+}
+
+// journalRequestPart — ссылка на трассировку запроса. Трассировка отдаётся
+// только по записям владельца ключа: у служебной записи её нет, и ссылка
+// вела бы в пустоту.
+function journalRequestPart(row) {
+  if (!row.consumer) { return "запрос: " + row.request_id; }
+  var span = tag("span", "", "запрос: ");
+  var rid = tag("button", "linkish", row.request_id);
+  rid.type = "button";
+  rid.setAttribute("data-rid", row.request_id);
+  rid.title = "Открыть трассировку этого запроса";
+  span.appendChild(rid);
+  return span;
+}
+
+// journalMetaParts — подробности записи: строки и узлы в порядке показа.
+function journalMetaParts(row) {
+  var parts = [];
+  parts.push(row.consumer ? "потребитель: " + row.consumer : "служебная запись");
+  if (row.request_id) { parts.push(journalRequestPart(row)); }
+  if (row.endpoint) { parts.push("эндпоинт: " + row.endpoint); }
+  if (row.op) { parts.push("операция: " + row.op); }
+  if (row.outcome) { parts.push("исход: " + row.outcome); }
+  if ((row.type_labels || []).length > 0) { parts.push("типы ПД: " + row.type_labels.join(", ")); }
+  if (row.masked) { parts.push("замен: " + row.masked); }
+  if (row.duration_ms) { parts.push("длительность: " + row.duration_ms + " мс"); }
+  return parts;
+}
+
+function journalNode(row) {
+  var d = tag("div", "jrow");
+  d.appendChild(tag("div", "jtime", shortTime(row.at)));
+  d.appendChild(tag("div", "lvl " + row.level, row.level));
+
+  var body = document.createElement("div");
+  body.appendChild(tag("div", "", row.message));
+
+  var parts = journalMetaParts(row);
+  var meta = tag("div", "jmeta");
+  parts.forEach(function (p, i) {
+    if (i > 0) { meta.appendChild(document.createTextNode(" · ")); }
+    meta.appendChild(typeof p === "string" ? document.createTextNode(p) : p);
+  });
+  body.appendChild(meta);
+  d.appendChild(body);
+  return d;
+}
+
+// ── Опрос ───────────────────────────────────────────────────────────────────
+
+function pollOnce() {
+  pollTick++;
+  refreshMetrics();
+  // Состояние сервиса меняется редко: раз в десять секунд достаточно, чтобы
+  // увидеть перезагрузку настроек по SIGHUP, не удваивая число запросов.
+  if (pollTick % 5 === 1) {
+    refreshService();
+    if (activeTab === "config") { loadConsumers(); }
+  }
+  if (apiKeyValue() === "") {
+    setKeyState("none");
+    return;
+  }
+  refreshHistory();
+  refreshJournal();
+}
+
+function startPolling() {
+  if (pollTimer !== null) { return; }
+  pollTimer = setInterval(pollOnce, POLL_MS);
+  el(ID_POLL_TOGGLE).textContent = "Остановить обновление";
+  el("pollState").textContent = "обновление раз в 2 с";
+  pollOnce();
+}
+
+function stopPolling() {
+  if (pollTimer === null) { return; }
+  clearInterval(pollTimer);
+  pollTimer = null;
+  el(ID_POLL_TOGGLE).textContent = "Возобновить обновление";
+  el("pollState").textContent = "обновление остановлено";
+}
+
+buildExamples();
+loadConsumers();
+el("run").addEventListener("click", run);
+el("clear").addEventListener("click", function () {
+  el("text").value = "";
+  el("exampleNote").textContent = "";
+  el("result").hidden = true;
+  el("empty").hidden = false;
+  setStatus("");
+});
+el(ID_POLL_TOGGLE).addEventListener("click", function () {
+  if (pollTimer === null) { startPolling(); } else { stopPolling(); }
+});
+["fLevel", "fType", "fOutcome"].forEach(function (id) {
+  el(id).addEventListener("change", renderJournal);
+});
+el("fSearch").addEventListener("input", renderJournal);
+el("lvlCounts").addEventListener("click", function (ev) {
+  var b = ev.target.closest ? ev.target.closest("button[data-level]") : null;
+  if (!b) { return; }
+  var lvl = b.getAttribute("data-level");
+  el("fLevel").value = el("fLevel").value === lvl ? "" : lvl;
+  renderJournal();
+});
+// Ключ сменился — всё, что пришло под прежним, забывается, а наблюдаемость
+// подхватывается сразу, без ожидания следующего тика опроса.
+el("key").addEventListener("change", function () {
+  resetOwnerState();
+  pollOnce();
+});
+el("key").addEventListener("input", function () {
+  if (apiKeyValue() === "") { setKeyState("none"); }
+});
+// Один обработчик на всю таблицу: строки перерисовываются, тело таблицы — нет.
+el(ID_HISTORY_ROWS).addEventListener("click", function (ev) {
+  var tr = ev.target.closest ? ev.target.closest("tr[data-rid]") : null;
+  if (tr) { openTrace(tr.getAttribute("data-rid"), true, true); }
+});
+el("journal").addEventListener("click", function (ev) {
+  var b = ev.target.closest ? ev.target.closest("button[data-rid]") : null;
+  if (b) { goTrace(b.getAttribute("data-rid")); }
+});
+el("toTrace").addEventListener("click", function () { goTrace(lastRunId); });
+
+el("tablist").addEventListener("click", function (ev) {
+  var b = ev.target.closest ? ev.target.closest("[data-tab]") : null;
+  if (b) { navigate(b.getAttribute("data-tab")); }
+});
+// Клавиатура по образцу WAI-ARIA для вкладок: стрелки, Home и End.
+el("tablist").addEventListener("keydown", function (ev) {
+  var i = TABS.indexOf(activeTab);
+  var j = -1;
+  if (ev.key === "ArrowRight") { j = (i + 1) % TABS.length; }
+  else if (ev.key === "ArrowLeft") { j = (i + TABS.length - 1) % TABS.length; }
+  else if (ev.key === "Home") { j = 0; }
+  else if (ev.key === "End") { j = TABS.length - 1; }
+  if (j < 0) { return; }
+  ev.preventDefault();
+  navigate(TABS[j]);
+  el("tab-" + TABS[j]).focus();
+});
+window.addEventListener("hashchange", function () { showTab(tabFromHash()); });
+
+// Подсказки баров и столбцов — один делегированный обработчик: элементы
+// перерисовываются каждые две секунды, навешивать на каждый нет смысла.
+document.addEventListener("pointermove", function (ev) {
+  var node = ev.target && ev.target.closest ? ev.target.closest(".has-tip") : null;
+  if (node && node._tip) {
+    showTip(ev.clientX, ev.clientY, node._tip.title, node._tip.rows, "bar");
+  } else if (tipFrom === "bar") {
+    hideTip();
+  }
+});
+
+var resizeTimer = null;
+window.addEventListener("resize", function () {
+  if (resizeTimer !== null) { clearTimeout(resizeTimer); }
+  resizeTimer = setTimeout(function () {
+    resizeTimer = null;
+    if (activeTab === "dashboard") { renderDashboard(); }
+  }, 150);
+});
+
+showTab(tabFromHash());
+startPolling();
+</script>
+</body>
+</html>

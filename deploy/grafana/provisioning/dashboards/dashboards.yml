@@ -1,0 +1,11 @@
+# Дашборды читаются из файлов при старте и в интерфейсе не редактируются:
+# то, что видит жюри, совпадает с тем, что лежит в репозитории.
+apiVersion: 1
+
+providers:
+  - name: ai-gateway
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards

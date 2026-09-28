@@ -1,0 +1,74 @@
+# Адреса, которые не являются персональными данными.
+#
+# Сканер email сверяет со справочником три среза найденного адреса: адрес
+# целиком, локальную часть до «@» и домен после «@». Совпадение по любому из
+# них даёт вето: контакт организации — не данные физического лица.
+#
+# Домены общедоступных почтовых служб (mail.ru, yandex.ru, gmail.com) сюда
+# не попадают: там заводят личные ящики.
+
+# --- Локальные части служебных ящиков ---
+info
+support
+noreply
+no-reply
+donotreply
+help
+helpdesk
+sales
+office
+service
+feedback
+contact
+contacts
+admin
+administrator
+webmaster
+postmaster
+hostmaster
+abuse
+security
+press
+pr
+media
+marketing
+reklama
+hr
+job
+jobs
+career
+careers
+vacancy
+partner
+partners
+order
+orders
+billing
+invoice
+callcenter
+call-center
+client
+clients
+team
+team-info
+
+# --- Домены организаций ---
+alfabank.ru
+alfabank.com
+sberbank.ru
+vtb.ru
+gazprombank.ru
+tinkoff.ru
+raiffeisen.ru
+open.ru
+psbank.ru
+rshb.ru
+mkb.ru
+sovcombank.ru
+cbr.ru
+gosuslugi.ru
+nalog.ru
+pfr.gov.ru
+sfr.gov.ru
+mos.ru
+rostelecom.ru

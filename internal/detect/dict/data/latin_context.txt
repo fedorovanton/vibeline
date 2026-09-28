@@ -1,0 +1,477 @@
+# Контекст имени латиницей для сканера latin (scan_latin.go): слово или
+# фраза и метка — роль записи. Ключи нормализуются при загрузке.
+#
+# Метки:
+#   marker   — маркер лица слева от имени: «Client Ivan Petrov», «перевод от
+#              Dmitry Tsoy». Имя за ним маскируется без реквизитов рядом.
+#   title    — обращение: «Mr. Oleg Melnik». Как marker, и точка после него
+#              предложение не завершает.
+#   work     — произведение: «роман Anna Karenina», «novel …». Имя рядом —
+#              название, а не человек (контр-правило).
+#   stop     — слово с заглавной, которое не бывает частью имени: разрывает
+#              ряд слов, само в спан не входит.
+#   place    — объект, названный по имени: «Victoria Station», «Ivan Petrov
+#              Street». Ряд, стоящий вплотную к такому слову, — название
+#              места или организации, а не человек (контр-правило).
+#   particle — строчная частица внутри имени: «Anna van der Berg».
+#   phrase   — бренд, место или персонаж, где первое слово — личное имя:
+#              «Hugo Boss», «Calvin Klein». Ряд, начатый фразой, — не ПД,
+#              даже за маркером лица («made by Hugo Boss»). Поэтому сюда не
+#              вносятся бренды, совпадающие с обычным ФИО («Paul Smith»).
+#
+# Маркеры держателя карты («держатель», «card», «name», «имя») здесь не
+# ведутся: имя за ними — зона сканера держателя (scan_misc.go).
+
+# Маркеры лица — русские формы.
+клиент	marker
+клиента	marker
+клиенту	marker
+клиентом	marker
+клиентка	marker
+клиентки	marker
+клиентке	marker
+клиенткой	marker
+получатель	marker
+получателя	marker
+получателю	marker
+получателем	marker
+получательница	marker
+отправитель	marker
+отправителя	marker
+отправителем	marker
+плательщик	marker
+плательщика	marker
+плательщиком	marker
+заявитель	marker
+заявителя	marker
+заемщик	marker
+заемщика	marker
+заемщиком	marker
+вкладчик	marker
+вкладчика	marker
+поручитель	marker
+поручителя	marker
+от	marker
+для	marker
+господин	marker
+госпожа	marker
+гражданин	marker
+гражданка	marker
+мистер	marker
+миссис	marker
+мисс	marker
+уважаемый	marker
+уважаемая	marker
+сотрудник	marker
+сотрудника	marker
+менеджер	marker
+менеджера	marker
+контакт	marker
+контактное	marker
+пациент	marker
+пациента	marker
+
+# Маркеры лица — английские.
+client	marker
+customer	marker
+recipient	marker
+beneficiary	marker
+sender	marker
+payer	marker
+payee	marker
+remitter	marker
+applicant	marker
+borrower	marker
+depositor	marker
+guarantor	marker
+employee	marker
+manager	marker
+patient	marker
+passenger	marker
+guest	marker
+user	marker
+contact	marker
+attn	marker
+attention	marker
+dear	marker
+from	marker
+call	marker
+regards	marker
+sincerely	marker
+signed	marker
+by	marker
+with	marker
+for	marker
+to	marker
+
+# Обращения.
+mr	title
+mrs	title
+ms	title
+mx	title
+miss	title
+dr	title
+prof	title
+sir	title
+madam	title
+mister	title
+
+# Произведения и персонажи.
+роман	work
+романа	work
+романе	work
+роману	work
+романом	work
+книга	work
+книги	work
+книге	work
+фильм	work
+фильма	work
+фильме	work
+сериал	work
+сериала	work
+пьеса	work
+пьесы	work
+опера	work
+оперы	work
+балет	work
+балета	work
+песня	work
+песни	work
+альбом	work
+альбома	work
+персонаж	work
+персонажа	work
+героиня	work
+героини	work
+герой	work
+героя	work
+novel	work
+film	work
+movie	work
+series	work
+opera	work
+ballet	work
+song	work
+album	work
+character	work
+heroine	work
+hero	work
+
+# Слова, которые не бывают частью имени: служебные слова и приветствия в
+# начале предложения, организационно-правовые формы, продукты и реквизиты.
+the	stop
+a	stop
+an	stop
+this	stop
+that	stop
+these	stop
+those	stop
+please	stop
+hello	stop
+hi	stop
+hey	stop
+thanks	stop
+thank	stop
+welcome	stop
+yes	stop
+no	stop
+ok	stop
+and	stop
+or	stop
+but	stop
+if	stop
+when	stop
+what	stop
+where	stop
+who	stop
+why	stop
+how	stop
+i	stop
+we	stop
+you	stop
+he	stop
+she	stop
+they	stop
+it	stop
+my	stop
+our	stop
+your	stop
+his	stop
+her	stop
+their	stop
+is	stop
+are	stop
+was	stop
+were	stop
+will	stop
+can	stop
+could	stop
+would	stop
+should	stop
+not	stop
+in	stop
+on	stop
+at	stop
+of	stop
+name	stop
+surname	stop
+first	stop
+last	stop
+full	stop
+new	stop
+old	stop
+great	stop
+grand	stop
+royal	stop
+national	stop
+international	stop
+global	stop
+bank	stop
+banking	stop
+pay	stop
+card	stop
+cards	stop
+classic	stop
+gold	stop
+platinum	stop
+black	stop
+white	stop
+premium	stop
+business	stop
+play	stop
+store	stop
+app	stop
+apps	stop
+music	stop
+tv	stop
+cloud	stop
+drive	stop
+maps	stop
+mail	stop
+visa	stop
+mastercard	stop
+master	stop
+maestro	stop
+mir	stop
+unionpay	stop
+swift	stop
+iban	stop
+wallet	stop
+online	stop
+digital	stop
+travel	stop
+virtual	stop
+signature	stop
+standard	stop
+world	stop
+infinite	stop
+cashback	stop
+credit	stop
+debit	stop
+account	stop
+service	stop
+services	stop
+support	stop
+help	stop
+pro	stop
+plus	stop
+mini	stop
+ultra	stop
+lite	stop
+prime	stop
+one	stop
+max	stop
+edition	stop
+super	stop
+secret	stop
+empire	stop
+catholic	stop
+king	stop
+queen	stop
+prince	stop
+princess	stop
+lord	stop
+lady	stop
+saint	stop
+st	stop
+san	stop
+santa	stop
+sao	stop
+los	stop
+las	stop
+captain	stop
+general	stop
+president	stop
+monday	stop
+tuesday	stop
+wednesday	stop
+thursday	stop
+friday	stop
+saturday	stop
+sunday	stop
+january	stop
+february	stop
+march	stop
+april	stop
+may	stop
+june	stop
+july	stop
+august	stop
+september	stop
+october	stop
+november	stop
+december	stop
+jan	stop
+feb	stop
+mar	stop
+apr	stop
+jun	stop
+jul	stop
+aug	stop
+sep	stop
+sept	stop
+oct	stop
+nov	stop
+dec	stop
+
+# Объекты и организации, названные по имени.
+street	place
+avenue	place
+ave	place
+road	place
+rd	place
+lane	place
+boulevard	place
+blvd	place
+square	place
+sq	place
+station	place
+airport	place
+hotel	place
+park	place
+bridge	place
+university	place
+college	place
+school	place
+academy	place
+institute	place
+hospital	place
+clinic	place
+church	place
+cathedral	place
+museum	place
+gallery	place
+theatre	place
+theater	place
+center	place
+centre	place
+tower	place
+plaza	place
+mall	place
+city	place
+town	place
+club	place
+cafe	place
+restaurant	place
+bar	place
+pub	place
+group	place
+ltd	place
+llc	place
+inc	place
+corp	place
+corporation	place
+co	place
+company	place
+plc	place
+gmbh	place
+ag	place
+holding	place
+holdings	place
+capital	place
+finance	place
+fund	place
+foundation	place
+trust	place
+insurance	place
+consulting	place
+studio	place
+studios	place
+media	place
+news	place
+times	place
+post	place
+journal	place
+magazine	place
+day	place
+night	place
+cup	place
+prize	place
+award	place
+awards	place
+festival	place
+fest	place
+team	place
+fc	place
+united	place
+airlines	place
+airways	place
+motors	place
+shop	place
+market	place
+island	place
+lake	place
+river	place
+beach	place
+bay	place
+valley	place
+hill	place
+mount	place
+mountain	place
+line	place
+language	place
+
+# Строчные частицы внутри имени.
+van	particle
+von	particle
+der	particle
+den	particle
+de	particle
+da	particle
+di	particle
+du	particle
+la	particle
+le	particle
+del	particle
+dos	particle
+das	particle
+ter	particle
+ten	particle
+bin	particle
+ibn	particle
+al	particle
+el	particle
+
+# Бренды, места и персонажи, начинающиеся с личного имени.
+hugo boss	phrase
+calvin klein	phrase
+tommy hilfiger	phrase
+ralph lauren	phrase
+christian dior	phrase
+christian louboutin	phrase
+louis vuitton	phrase
+giorgio armani	phrase
+yves saint laurent	phrase
+jack daniels	phrase
+jack wolfskin	phrase
+johnnie walker	phrase
+jim beam	phrase
+aston martin	phrase
+morgan stanley	phrase
+charles schwab	phrase
+anna karenina	phrase
+harry potter	phrase
+james bond	phrase
+peter pan	phrase
+martin luther	phrase

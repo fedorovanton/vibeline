@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>ai-gateway — презентация решения</title>
+<style>
+/* Презентация отдаётся тем же сервисом, что и стенд, и под той же политикой
+   безопасности: default-src 'none'. Поэтому внешних шрифтов, картинок и
+   библиотек нет — схемы и графики нарисованы встроенным SVG, шрифты
+   системные. Палитра — та же, что у стенда: зелёный — «защищено», красный —
+   «ПД открыты» или отказ, янтарный — всё, что за границей доверия. */
+:root {
+  color-scheme: dark;
+  --bg:        #080c11;
+  --bg-soft:   #0d131b;
+  --card:      #111a24;
+  --card-2:    #16212e;
+  --line:      #263646;
+  --line-soft: #1b2632;
+  --ink:   #eef5fb;
+  --ink-2: #a8bccf;
+  --ink-3: #7a90a5;
+  --ok:        #2fe08a;
+  --ok-deep:   #17b56b;
+  --ok-soft:   #0f2d20;
+  --red:       #ff5f56;
+  --red-soft:  #2c1114;
+  --amber:     #ffb23f;
+  --amber-soft:#2a1d0a;
+  --blue:      #6fb2ff;
+  --blue-soft: #0f2236;
+  --glow-1: #12212f;
+  --glow-2: #101d2b;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f4f6f8; --bg-soft: #eaeef2; --card: #ffffff; --card-2: #f3f6f9;
+    --line: #cbd5df; --line-soft: #e1e7ed;
+    --ink: #0f1a24; --ink-2: #3b4e60; --ink-3: #5c7084;
+    --ok: #0b7f4b; --ok-deep: #0b7a48; --ok-soft: #e1f4ea;
+    --red: #c02d25; --red-soft: #fdeceb;
+    --amber: #9a5c07; --amber-soft: #fdf1df;
+    --blue: #1f5fae; --blue-soft: #e6f0fb;
+    --glow-1: #e3ebf3; --glow-2: #e8eef5;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6f8; --bg-soft: #eaeef2; --card: #ffffff; --card-2: #f3f6f9;
+  --line: #cbd5df; --line-soft: #e1e7ed;
+  --ink: #0f1a24; --ink-2: #3b4e60; --ink-3: #5c7084;
+  --ok: #0b7f4b; --ok-deep: #0b7a48; --ok-soft: #e1f4ea;
+  --red: #c02d25; --red-soft: #fdeceb;
+  --amber: #9a5c07; --amber-soft: #fdf1df;
+  --blue: #1f5fae; --blue-soft: #e6f0fb;
+  --glow-1: #e3ebf3; --glow-2: #e8eef5;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+html { background: var(--bg); }
+body {
+  background:
+    radial-gradient(1200px 520px at 12% -8%, var(--glow-1) 0%, transparent 70%),
+    radial-gradient(900px 420px at 92% -4%, var(--glow-2) 0%, transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: clamp(15px, 0.55vw + 9px, 20px);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: var(--mono); font-size: 0.9em; }
+b, strong { font-weight: 650; }
+
+/* ── Лента слайдов ─────────────────────────────────────────────────────── */
+
+#deck {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  scroll-behavior: smooth;
+}
+.slide {
+  min-height: 100vh;
+  min-height: 100dvh;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  padding: 38px 64px 38px 48px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.slide > .in { width: 100%; max-width: 1320px; margin: 0 auto; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ok);
+  margin: 0 0 10px;
+}
+.eyebrow .num { color: var(--ink-3); margin-right: 10px; }
+h1 { font-size: clamp(40px, 5vw, 78px); line-height: 1.02; margin: 0 0 18px; letter-spacing: -0.02em; }
+h2 { font-size: clamp(26px, 2.4vw, 42px); line-height: 1.12; margin: 0 0 14px; letter-spacing: -0.01em; }
+h3 { font-size: 1.08em; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+.lead { font-size: 1.08em; color: var(--ink-2); max-width: 62em; margin-bottom: 18px; }
+.muted { color: var(--ink-2); }
+.dim { color: var(--ink-3); }
+.small { font-size: 0.86em; }
+.tiny { font-size: 0.78em; }
+
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g-wide { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.stack > * + * { margin-top: 14px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-width: 0;
+}
+.team-grid { margin-top: 16px; }
+.team-grid .kpi .v { font-size: clamp(18px, 1.6vw, 26px); }
+.card.soft { background: var(--bg-soft); border-color: var(--line-soft); }
+.card.ok { border-color: var(--ok-deep); background: linear-gradient(180deg, var(--ok-soft), var(--card) 70%); }
+.card.red { border-color: var(--red); background: linear-gradient(180deg, var(--red-soft), var(--card) 70%); }
+.card.amber { border-color: var(--amber); background: linear-gradient(180deg, var(--amber-soft), var(--card) 70%); }
+.card.blue { border-color: var(--blue); background: linear-gradient(180deg, var(--blue-soft), var(--card) 70%); }
+.card h3 .tag { float: right; }
+.card ul { margin: 6px 0 0; padding-left: 1.1em; }
+.card li { margin: 3px 0; }
+.card li::marker { color: var(--ink-3); }
+
+.chip {
+  display: inline-block;
+  border: 1px solid var(--line);
+  background: var(--card-2);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 0.82em;
+  white-space: nowrap;
+  margin: 2px 4px 2px 0;
+}
+.chip.ok { border-color: var(--ok-deep); color: var(--ok); background: var(--ok-soft); }
+.chip.red { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.chip.amber { border-color: var(--amber); color: var(--amber); background: var(--amber-soft); }
+.chip.blue { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.7em;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 7px;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+.tag.result { color: var(--ok); border-color: var(--ok-deep); }
+.tag.target { color: var(--amber); border-color: var(--amber); }
+
+.kpi { padding: 16px 18px; }
+.kpi .v { font-size: clamp(28px, 2.6vw, 46px); font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+.kpi .v.ok { color: var(--ok); }
+.kpi .l { color: var(--ink-2); font-size: 0.9em; margin-top: 6px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th { color: var(--ink-3); font-weight: 600; font-size: 0.86em; text-transform: none; }
+td code { white-space: nowrap; }
+.tbl { overflow-x: auto; }
+
+/* Блок команды с кнопкой копирования. */
+.cmd {
+  position: relative;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 8px 0 0;
+}
+.cmd pre {
+  margin: 0;
+  padding: 12px 84px 12px 14px;
+  font-family: var(--mono);
+  font-size: 0.8em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--ink);
+}
+.cmd button {
+  position: absolute; top: 8px; right: 8px;
+  font: inherit; font-size: 0.74em;
+  border: 1px solid var(--line); background: var(--card-2); color: var(--ink-2);
+  border-radius: 7px; padding: 3px 10px; cursor: pointer;
+}
+.cmd.block pre { white-space: pre; word-break: normal; overflow-x: auto; padding: 38px 14px 12px; }
+.cmd button:hover { color: var(--ink); border-color: var(--ink-3); }
+.cmd button.done { color: var(--ok); border-color: var(--ok-deep); }
+
+.mask { color: var(--ok); font-family: var(--mono); font-size: 0.92em; }
+.pii { color: var(--red); }
+.sample {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--bg-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.sample .lbl { display: block; font-family: inherit; color: var(--ink-3); font-size: 0.85em; margin-bottom: 2px; }
+
+.steps { counter-reset: st; }
+.steps .card { position: relative; padding-left: 58px; }
+.steps .card::before {
+  counter-increment: st;
+  content: counter(st);
+  position: absolute; left: 16px; top: 16px;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--ok-deep); color: var(--ok); background: var(--ok-soft);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85em;
+}
+
+.diagram { overflow-x: auto; margin: 4px 0 10px; }
+.diagram svg { display: block; width: 100%; height: auto; max-height: 44vh; min-width: 760px; }
+.diagram.big svg { max-height: 58vh; }
+.card.compact { padding: 12px 16px; }
+.card.compact h3 { margin-bottom: 4px; }
+.card.compact p { margin: 0; }
+svg text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+.d-zone { fill: var(--ok-soft); fill-opacity: 0.35; stroke: var(--ok-deep); stroke-width: 1.4; stroke-dasharray: 6 5; }
+.d-zone-lbl { fill: var(--ok); font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; }
+.d-node { fill: var(--card); stroke: var(--line); stroke-width: 1.3; }
+.d-node.hot { stroke: var(--ok); stroke-width: 2; }
+.d-node.ext { fill: var(--amber-soft); stroke: var(--amber); }
+.d-node.alt { fill: var(--card-2); stroke-dasharray: 5 4; }
+.d-t { fill: var(--ink); font-size: 16px; font-weight: 650; }
+.d-s { fill: var(--ink-2); font-size: 13px; }
+.d-a { fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
+.d-a.ok { stroke: var(--ok); }
+.d-a.amber { stroke: var(--amber); }
+.d-a.dash { stroke-dasharray: 5 5; }
+.d-lbl { fill: var(--ink-3); font-size: 12px; }
+.d-lbl.ok { fill: var(--ok); }
+.d-lbl.red { fill: var(--red); }
+.d-head { fill: var(--ink-3); }
+.d-head.ok { fill: var(--ok); }
+.d-head.amber { fill: var(--amber); }
+
+/* Вкладки на слайде со стратегиями. */
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.tabs button {
+  font: inherit; font-size: 0.9em;
+  border: 1px solid var(--line); background: var(--card-2); color: var(--ink-2);
+  border-radius: 999px; padding: 6px 16px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { border-color: var(--ok-deep); color: var(--ok); background: var(--ok-soft); font-weight: 600; }
+.tabpanel[hidden] { display: none; }
+
+/* График производительности. */
+.bars { display: grid; gap: 12px; margin: 0; }
+.bar-row { display: grid; grid-template-columns: minmax(150px, 15em) minmax(0, 1fr); gap: 14px; align-items: center; }
+.bar-row .name { color: var(--ink-2); font-size: 0.88em; line-height: 1.3; }
+.bar-track { position: relative; height: 34px; }
+.bar {
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  background: var(--ok-deep);
+  border-radius: 0 4px 4px 0;
+  min-width: 2px;
+}
+.bar-val { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 700; font-size: 0.92em; white-space: nowrap; padding-left: 10px; }
+.ref { position: absolute; top: -8px; bottom: -8px; border-left: 2px dashed var(--amber); }
+.ref span { position: absolute; top: -20px; left: 4px; font-size: 0.72em; color: var(--amber); white-space: nowrap; }
+.ref span.before { left: auto; right: 6px; }
+.bar-row:hover .bar { background: var(--ok); }
+
+/* Горизонты развития. */
+.horizon { border-top: 3px solid var(--line); }
+.horizon.h1 { border-top-color: var(--ok); }
+.horizon.h2 { border-top-color: var(--blue); }
+.horizon.h3 { border-top-color: var(--amber); }
+.item { border-top: 1px solid var(--line-soft); padding: 9px 0 3px; }
+.item:first-of-type { border-top: 0; }
+.item .t { font-weight: 650; }
+.item .t .size { float: right; }
+.item .w { color: var(--ink-2); font-size: 0.88em; }
+.size { font-family: var(--mono); font-size: 0.72em; border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; color: var(--ink-2); }
+.dir { font-family: var(--mono); font-size: 0.7em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); display: block; }
+
+.check { list-style: none; padding: 0; margin: 0; }
+.check li { position: relative; padding: 10px 0 10px 40px; border-bottom: 1px solid var(--line-soft); }
+.check li::before {
+  content: "✓"; position: absolute; left: 4px; top: 10px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ok-soft); color: var(--ok); border: 1px solid var(--ok-deep); font-size: 0.8em; font-weight: 700;
+}
+.check li.warn::before { content: "!"; background: var(--amber-soft); color: var(--amber); border-color: var(--amber); }
+
+.cols-text { columns: 2; column-gap: 28px; }
+.cols-text > * { break-inside: avoid; }
+
+.hero-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: 10px; padding: 9px 16px; font-size: 0.94em;
+}
+.btn.primary { border-color: var(--ok-deep); background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.btn:hover { text-decoration: none; border-color: var(--ink-3); }
+.kbd { font-family: var(--mono); font-size: 0.78em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 0 6px; color: var(--ink-2); }
+
+.brand-mark {
+  width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ok-deep); border-radius: 16px;
+  background: linear-gradient(160deg, var(--ok-soft), var(--card));
+  margin-bottom: 22px;
+}
+.brand-mark svg { width: 36px; height: 36px; fill: none; stroke: var(--ok); stroke-width: 1.7; }
+
+/* ── Навигация поверх ленты ────────────────────────────────────────────── */
+
+#progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--ok); width: 0; z-index: 20; transition: width .2s; }
+#dots {
+  position: fixed; right: 16px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 7px; z-index: 20;
+}
+#dots button {
+  width: 10px; height: 10px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--ink-3); background: transparent; cursor: pointer;
+}
+#dots button[aria-current="true"] { background: var(--ok); border-color: var(--ok); transform: scale(1.25); }
+#hud {
+  position: fixed; right: 14px; bottom: 12px; z-index: 20;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 4px 6px;
+  font-size: 13px; color: var(--ink-2);
+}
+#hud button {
+  font: inherit; border: 0; background: transparent; color: var(--ink-2);
+  padding: 4px 8px; border-radius: 6px; cursor: pointer;
+}
+#hud button:hover { background: var(--card-2); color: var(--ink); }
+#counter { font-family: var(--mono); min-width: 5.2em; text-align: center; }
+
+/* Обзор — элемент <dialog>: его встроенные стили браузера (рамка, поля,
+   размер по содержимому, свой цвет текста) сняты, чтобы он выглядел как
+   прежний слой на весь экран. */
+#overview {
+  position: fixed; inset: 0; z-index: 30;
+  width: auto; height: auto; max-width: none; max-height: none;
+  margin: 0; border: 0; color: inherit;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  overflow-y: auto; padding: 40px 48px;
+}
+#overview:not([open]) { display: none; }
+#overview h2 { margin-bottom: 18px; }
+#ovGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+#ovGrid button {
+  text-align: left; font: inherit; color: var(--ink);
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; cursor: pointer; min-height: 96px;
+}
+#ovGrid button:hover, #ovGrid button[aria-current="true"] { border-color: var(--ok-deep); background: var(--ok-soft); }
+#ovGrid .n { font-family: var(--mono); color: var(--ink-3); font-size: 0.78em; display: block; margin-bottom: 4px; }
+
+.filenote { display: none; }
+.is-file .filenote { display: block; }
+
+@media (max-width: 1100px) {
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g-wide { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 820px) {
+  .slide { padding: 48px 16px 64px; align-items: flex-start; }
+  .g2, .g3 { grid-template-columns: minmax(0, 1fr); }
+  .cols-text { columns: 1; }
+  #dots { display: none; }
+  .bar-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  #overview { padding: 24px 16px; }
+}
+@media (max-width: 480px) {
+  .g4 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #deck { scroll-behavior: auto; }
+  #progress { transition: none; }
+}
+@media print {
+  @page { size: landscape; margin: 10mm; }
+  html, body { height: auto; background: #fff; }
+  #deck { height: auto; overflow: visible; }
+  .slide { min-height: auto; page-break-after: always; break-after: page; border: 0; padding: 0; display: block; }
+  #progress, #dots, #hud, #overview, .cmd button { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="progress" aria-hidden="true"></div>
+<nav id="dots" aria-label="Слайды"></nav>
+<div id="hud">
+  <button type="button" id="prev" aria-label="Предыдущий слайд">↑</button>
+  <span id="counter">1 / 1</span>
+  <button type="button" id="next" aria-label="Следующий слайд">↓</button>
+  <button type="button" id="ovBtn" title="Обзор слайдов (O)">Обзор</button>
+  <button type="button" id="themeBtn" title="Светлая или тёмная тема (T)">Тема</button>
+</div>
+<dialog id="overview" aria-label="Обзор слайдов">
+  <h2>Все слайды</h2>
+  <div id="ovGrid"></div>
+</dialog>
+
+<main id="deck">
+
+<!-- 1 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" id="s-title" data-title="ai-gateway">
+  <div class="in">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.6 20 5.4v6.1c0 4.7-3.2 8.4-8 9.9-4.8-1.5-8-5.2-8-9.9V5.4Z" stroke-linejoin="round"/>
+        <path d="m8.4 12.1 2.6 2.6 4.6-5.1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p class="eyebrow">Хакатон AlfaGen · трек «Модуль безопасности персональных данных»</p>
+    <h1>ai-gateway</h1>
+    <p class="lead">Прокси между системой-потребителем и языковой моделью. Находит
+      в тексте персональные данные 24 типов, скрывает их до отправки в модель и
+      восстанавливает в ответе. Решение о том, что считать ПД, принимается
+      детерминированно — грамматики, справочники, контрольные суммы и контекст,
+      без нейросетей внутри защиты.</p>
+    <div class="grid g4">
+      <div class="card kpi"><div class="v ok">24</div><div class="l">типа ПД: 17 обязательных по ТЗ и 7 дополнительных</div></div>
+      <div class="card kpi"><div class="v ok">0,9988</div><div class="l">доля сокрытия на корпусе из 4 978 значений, precision 1,0</div></div>
+      <div class="card kpi"><div class="v ok">0 / 144</div><div class="l">ложных срабатываний на ловушках</div></div>
+      <div class="card kpi"><div class="v ok">6 529</div><div class="l">запросов в секунду на публичном адресе, p99 65 мс</div></div>
+    </div>
+    <div class="hero-links">
+      <a class="btn primary" href="/">Открыть стенд</a>
+      <a class="btn" href="/#dashboard">Дашборд метрик</a>
+      <a class="btn" href="/#logs">Журнал</a>
+      <a class="btn" href="/metrics">/metrics</a>
+    </div>
+    <p class="small dim" style="margin-top:18px">Публичный адрес: <code class="host">94.228.167.253:8080</code> ·
+      контракт автопроверки <code>POST /process</code> · листать —
+      колесом, свайпом или <span class="kbd">↓</span> <span class="kbd">↑</span>,
+      <span class="kbd">O</span> — обзор слайдов, <span class="kbd">T</span> — тема.</p>
+    <p class="filenote small" style="color:var(--amber)">Файл открыт с диска: ссылки на стенд
+      работают, когда презентация открыта с сервиса — <code>94.228.167.253:8080/presentation</code>.</p>
+  </div>
+</section>
+
+<!-- 2 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Задача и решение">
+  <div class="in">
+    <p class="eyebrow"><span class="num">02</span>Задача</p>
+    <h2>В модель уходит текст клиента. Персональные данные не должны уйти вместе с ним</h2>
+    <p class="lead">Системы банка отправляют в LLM обращения, анкеты и переписку.
+      ai-gateway стоит на этом пути. Он заменяет каждое значение ПД
+      типизированной маской и запоминает соответствие. Когда приходит ответ
+      модели, маски снова становятся исходными значениями.</p>
+    <div class="grid g4">
+      <div class="sample"><span class="lbl">1 · Потребитель отправляет</span>Клиент <span class="pii">Иванов Иван Иванович</span>, карта <span class="pii">4111 1111 1111 1111</span>, тел. <span class="pii">+7 916 123-45-67</span></div>
+      <div class="sample"><span class="lbl">2 · В модель уходит</span>Клиент <span class="mask">[ФИО_1]</span>, карта <span class="mask">[КАРТА_1]</span>, тел. <span class="mask">[ТЕЛЕФОН_1]</span></div>
+      <div class="sample"><span class="lbl">3 · Модель отвечает</span>Уважаемый <span class="mask">[ФИО_1]</span>, карта <span class="mask">[КАРТА_1]</span> заблокирована</div>
+      <div class="sample"><span class="lbl">4 · Потребитель получает</span>Уважаемый <span class="pii">Иванов Иван Иванович</span>, карта <span class="pii">4111 1111 1111 1111</span> заблокирована</div>
+    </div>
+    <div class="grid g3" style="margin-top:18px">
+      <div class="card"><h3>Полное сокрытие</h3><p class="muted small">Значение скрывается целиком. Служебные слова («серия», «номер», «тел.», «года») остаются снаружи маски: их маскирование штрафуется как избыточность.</p></div>
+      <div class="card"><h3>Смысл сохраняется</h3><p class="muted small">Маска несёт тип: <span class="mask">[ФИО_1]</span>, <span class="mask">[ПАСПОРТ_1]</span>. Модель понимает, о чём речь. Одинаковые значения получают одинаковый номер.</p></div>
+      <div class="card"><h3>Пропуск дороже лишней маски</h3><p class="muted small">При сомнении значение маскируется. Исключения — явные контр-правила: публичные персоны, топонимы, реквизиты организаций.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Проверка: маска и восстановление">
+  <div class="in">
+    <p class="eyebrow"><span class="num">03</span>Инструкция для жюри · 1 из 2</p>
+    <h2>Отправить текст, получить маску и восстановить оригинал</h2>
+    <p class="lead">Все команды работают и против локального запуска, и против публичного адреса.
+      Примеры синтетические: тестовая карта, сгенерированные ИНН и паспорт.</p>
+    <div class="grid g2 steps">
+      <div class="card">
+        <h3>Прямой шаг — маскирование</h3>
+        <p class="small muted">Новый <code>payload_id</code> — сервис возвращает маску.</p>
+        <div class="cmd"><pre>curl -sS -X POST <span class="host">94.228.167.253:8080</span>/process -H 'Content-Type: application/json' -d '{"payload":"Клиент Иванов Иван Иванович, паспорт серия 4509 номер 123456, карта 4111 1111 1111 1111","payload_id":"<span class="pid">jury-1</span>"}'</pre><button type="button">Копировать</button></div>
+        <p class="small" style="margin-top:8px">→ <span class="mask">{"result":"Клиент [ФИО_1], паспорт серия [ПАСПОРТ_1] номер [ПАСПОРТ_2], карта [КАРТА_1]"}</span></p>
+      </div>
+      <div class="card">
+        <h3>Обратный шаг — восстановление</h3>
+        <p class="small muted">Тот же <code>payload_id</code> и полученная маска — исходная строка побайтово.</p>
+        <div class="cmd"><pre>curl -sS -X POST <span class="host">94.228.167.253:8080</span>/process -H 'Content-Type: application/json' -d '{"payload":"Клиент [ФИО_1], паспорт серия [ПАСПОРТ_1] номер [ПАСПОРТ_2], карта [КАРТА_1]","payload_id":"<span class="pid">jury-1</span>"}'</pre><button type="button">Копировать</button></div>
+        <p class="small muted" style="margin-top:8px">Направление определяется состоянием, а не счётчиком: повтор исходного текста вернёт ту же маску.</p>
+      </div>
+      <div class="card">
+        <h3>Стенд — что фактически ушло в модель</h3>
+        <p class="small muted">Откройте <a href="/">стенд</a>, в шапке введите ключ <code>demo-key-for-jury</code>, вставьте свой текст. На вкладке «Проверка жюри» видно: найденные данные с типом и сработавшим правилом, тело запроса к модели рядом с исходным текстом и автоматическую сверку на утечку.</p>
+      </div>
+      <div class="card">
+        <h3>Разграничение доступа и ловушки</h3>
+        <p class="small muted"><code>/process</code> работает без ключа, продуктовые <code>/api/v1/*</code> и <code>/v1/*</code> — только с ключом. Без ключа ответ <code>401</code>, <code>unmask</code> под <code>crm</code> — <code>403</code>. Весь сценарий с побайтовой сверкой и ловушками запускается одной командой:</p>
+        <div class="cmd"><pre>./scripts/demo.sh <span class="host">94.228.167.253:8080</span></pre><button type="button">Копировать</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Проверка: журнал и метрики">
+  <div class="in">
+    <p class="eyebrow"><span class="num">04</span>Инструкция для жюри · 2 из 2</p>
+    <h2>Где смотреть журнал и метрики — без доступа к серверу</h2>
+    <div class="grid g-wide" style="grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)">
+      <div class="stack">
+        <div class="card">
+          <h3>Журнал <span class="chip ok">вкладка <a href="/#logs">/#logs</a></span></h3>
+          <p class="small muted">Поиск, фильтры, переход к трассировке. Нужен ключ. Обезличенные записи <code>/process</code> видны любому владельцу ключа — там виден и прогон проверки. На сервере: <code>docker compose logs -f ai-gateway</code>.</p>
+          <div class="sample tiny" style="margin-top:8px"><span class="lbl">фрагмент записи</span>{"msg":"запрос обработан","endpoint":"process","payload_id":"<span class="pid">jury-1</span>","consumer":"benchmark","op":"mask","masked_types":["card_number","full_name","passport_number"],"masked_count":4,"duration_us":94,"detect_us":36}</div>
+          <p class="tiny dim" style="margin-top:6px">Одна запись на запрос с длительностью каждого этапа: <code>detect_us</code>, <code>policy_us</code>, <code>mask_us</code>, <code>store_us</code>; все 9 этапов с временем — в трассировке на вкладке <a href="/#history">/#history</a>. Только типы, счётчики и длительности. Текста и значений ПД нет. Отказ 401/403 — запись «доступ отклонён» с причиной.</p>
+        </div>
+        <div class="card">
+          <h3>Дашборд <span class="chip ok">вкладка <a href="/#dashboard">/#dashboard</a> · без ключа</span></h3>
+          <p class="small muted">Latency, p95, RPS, TPS за 5 минут, ПД по типам, исходы, время ответа, хранилище, рантайм Go. Фильтр <code>/process</code> — цифры, которые меряют организаторы.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Grafana <span class="chip ok"><a class="grafana">порт 3000</a> · только просмотр</span></h3>
+        <p class="small muted">Независимая проверка цифр: Prometheus сам раз в 5 секунд опрашивает <code>/metrics</code>, Grafana строит по его данным RPS, p50/p95/p99, исходы и 429, ПД по типам, хранилище и память. Сервис для этой страницы ничего не готовит. Вход и правка выключены.</p>
+        <h3>Метрики Prometheus <span class="chip ok"><a href="/metrics">/metrics</a> · без ключа</span></h3>
+        <div class="cmd"><pre>curl -sS <span class="host">94.228.167.253:8080</span>/metrics | grep '^aigw_'</pre><button type="button">Копировать</button></div>
+        <div class="tbl" style="margin-top:10px">
+          <table>
+            <tr><th>Показатель</th><th>Метрика</th></tr>
+            <tr><td><b>Latency</b></td><td><code>aigw_request_duration_seconds</code> без ожидания модели; модель — <code>aigw_llm_duration_seconds</code></td></tr>
+            <tr><td><b>RPS</b></td><td>скорость роста <code>aigw_requests_total</code></td></tr>
+            <tr><td><b>TPS</b></td><td><code>aigw_tokens_in_total</code>, <code>_out_total</code>; токен = 4 байта</td></tr>
+            <tr><td>ПД по типам</td><td><code>aigw_pii_detected_total</code>, <code>aigw_pii_masked_total</code></td></tr>
+            <tr><td>По потребителям</td><td><code>aigw_consumer_requests_total{consumer,endpoint,outcome}</code></td></tr>
+            <tr><td>Хранилище</td><td><code>aigw_store_entries</code>, <code>_bytes</code>, <code>_evicted_total</code>, <code>_expired_total</code></td></tr>
+            <tr><td>Рантайм</td><td><code>aigw_go_*</code></td></tr>
+          </table>
+        </div>
+        <p class="tiny dim" style="margin-top:8px">Метки перечислимы: тип ПД, потребитель, код, маршрут. <code>payload_id</code>, <code>request_id</code> и текст в метку не попадают по построению.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Архитектура">
+  <div class="in">
+    <p class="eyebrow"><span class="num">05</span>Архитектура</p>
+    <h2>Один бинарник на Go, одна граница доверия, одна точка выпуска в модель</h2>
+    <div class="diagram big">
+      <svg role="img" aria-label="Схема: запрос проходит аутентификацию, лексер, детекцию, политику, маскирование и запись соответствия; в модель текст уходит только через точку выпуска internal/llm; ответ модели демаскируется и возвращается потребителю; контракт /process отвечает без модели." viewBox="0 0 1200 510">
+        <defs>
+          <marker id="ah" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head" points="0 0, 9 3.5, 0 7"/></marker>
+          <marker id="ah-ok" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head ok" points="0 0, 9 3.5, 0 7"/></marker>
+          <marker id="ah-am" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head amber" points="0 0, 9 3.5, 0 7"/></marker>
+        </defs>
+        <rect class="d-zone" x="178" y="36" width="836" height="420" rx="14"/>
+        <text class="d-zone-lbl" x="198" y="62">ГРАНИЦА ДОВЕРИЯ · AI-GATEWAY</text>
+
+        <!-- стрелки -->
+        <path class="d-a" d="M155 125 H198" marker-end="url(#ah)"/>
+        <path class="d-a" d="M340 125 H360" marker-end="url(#ah)"/>
+        <path class="d-a" d="M502 125 H522" marker-end="url(#ah)"/>
+        <path class="d-a" d="M664 125 H684" marker-end="url(#ah)"/>
+        <path class="d-a" d="M826 125 H846" marker-end="url(#ah)"/>
+        <path class="d-a" d="M918 164 V214" marker-end="url(#ah)"/>
+        <path class="d-a ok" d="M918 294 V344" marker-end="url(#ah-ok)"/>
+        <text class="d-lbl ok" x="908" y="324" text-anchor="end">запись подтверждена</text>
+        <path class="d-a amber" d="M988 385 H1043" marker-end="url(#ah-am)"/>
+        <path class="d-a amber" d="M1115 440 V486 H594 V426" marker-end="url(#ah-am)"/>
+        <text class="d-lbl" x="760" y="480">ответ модели</text>
+        <path class="d-a dash" d="M848 282 L666 362" marker-end="url(#ah)"/>
+        <text class="d-lbl" x="700" y="300">соответствия</text>
+        <path class="d-a" d="M522 385 H157" marker-end="url(#ah)"/>
+        <path class="d-a" d="M846 255 H342" marker-end="url(#ah)"/>
+        <text class="d-lbl" x="520" y="246">ответ без модели</text>
+        <path class="d-a" d="M198 255 H85 V166" marker-end="url(#ah)"/>
+
+        <!-- узлы -->
+        <rect class="d-node" x="15" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="85" y="118" text-anchor="middle">Потребитель</text>
+        <text class="d-s" x="85" y="140" text-anchor="middle">запрос + ключ</text>
+
+        <rect class="d-node" x="200" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="270" y="118" text-anchor="middle">Доступ</text>
+        <text class="d-s" x="270" y="140" text-anchor="middle">ключ → политика</text>
+
+        <rect class="d-node" x="362" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="432" y="118" text-anchor="middle">Лексер</text>
+        <text class="d-s" x="432" y="140" text-anchor="middle">токены, смещения</text>
+
+        <rect class="d-node hot" x="524" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="594" y="118" text-anchor="middle">Детекция</text>
+        <text class="d-s" x="594" y="140" text-anchor="middle">9 сканеров</text>
+
+        <rect class="d-node" x="686" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="756" y="118" text-anchor="middle">Политика</text>
+        <text class="d-s" x="756" y="140" text-anchor="middle">типы, комбинации</text>
+
+        <rect class="d-node" x="848" y="86" width="140" height="78" rx="10"/>
+        <text class="d-t" x="918" y="118" text-anchor="middle">Маскирование</text>
+        <text class="d-s" x="918" y="140" text-anchor="middle">4 стратегии</text>
+
+        <rect class="d-node" x="848" y="216" width="140" height="78" rx="10"/>
+        <text class="d-t" x="918" y="248" text-anchor="middle">Store</text>
+        <text class="d-s" x="918" y="270" text-anchor="middle">в памяти, TTL</text>
+
+        <rect class="d-node" x="200" y="216" width="140" height="78" rx="10"/>
+        <text class="d-t" x="270" y="248" text-anchor="middle">/process</text>
+        <text class="d-s" x="270" y="270" text-anchor="middle">и /api/v1/mask</text>
+
+        <rect class="d-node hot" x="848" y="346" width="140" height="78" rx="10"/>
+        <text class="d-t" x="918" y="378" text-anchor="middle">Точка выпуска</text>
+        <text class="d-s" x="918" y="400" text-anchor="middle">internal/llm</text>
+
+        <rect class="d-node ext" x="1045" y="330" width="140" height="110" rx="10"/>
+        <text class="d-t" x="1115" y="372" text-anchor="middle">LLM</text>
+        <text class="d-s" x="1115" y="394" text-anchor="middle">AlfaGen</text>
+        <text class="d-s" x="1115" y="414" text-anchor="middle">видит только маски</text>
+
+        <rect class="d-node" x="524" y="346" width="140" height="78" rx="10"/>
+        <text class="d-t" x="594" y="378" text-anchor="middle">Восстановление</text>
+        <text class="d-s" x="594" y="400" text-anchor="middle">+ новая детекция</text>
+
+        <rect class="d-node" x="15" y="346" width="140" height="78" rx="10"/>
+        <text class="d-t" x="85" y="378" text-anchor="middle">Потребитель</text>
+        <text class="d-s" x="85" y="400" text-anchor="middle">ответ модели</text>
+      </svg>
+    </div>
+    <div class="grid g3">
+      <div class="card red small compact"><h3>Прокси <code>/v1/*</code> — fail-closed</h3><p class="muted">Любой отказ защиты → <code>500</code> и <b>ноль запросов в модель</b>.</p></div>
+      <div class="card ok small compact"><h3>Контракт <code>/process</code> — recover</h3><p class="muted">Сбой не обрывает прогон: строка целиком → <span class="mask">[ЗАЩИЩЕНО]</span>, оригинал сохранён.</p></div>
+      <div class="card small compact"><h3>Конфигурация — атомарный снимок</h3><p class="muted"><code>atomic.Pointer</code>: одна версия на весь запрос, <code>SIGHUP</code> без простоя.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Что распознаётся">
+  <div class="in">
+    <p class="eyebrow"><span class="num">06</span>Детекция · типы</p>
+    <h2>24 типа персональных данных — 17 обязательных и 7 дополнительных</h2>
+    <p class="lead">Ключ типа пишется в <code>types</code> потребителя, <code>[all]</code> — все типы. Номер плейсхолдера — по порядку первого появления.</p>
+    <div class="card" style="margin-bottom:16px">
+      <p class="small dim" style="margin-bottom:8px">Обязательные по ТЗ</p>
+      <span class="chip ok">ФИО</span><span class="chip ok">дата рождения</span><span class="chip ok">место рождения</span><span class="chip ok">гражданство</span><span class="chip ok">серия и номер паспорта</span><span class="chip ok">орган выдачи</span><span class="chip ok">код подразделения</span><span class="chip ok">дата выдачи</span><span class="chip ok">водительское удостоверение</span><span class="chip ok">адрес и его компоненты</span><span class="chip ok">email</span><span class="chip ok">телефон</span><span class="chip ok">ИНН</span><span class="chip ok">номер карты</span><span class="chip ok">CVV</span><span class="chip ok">ПИН-код</span><span class="chip ok">держатель карты</span>
+      <p class="small dim" style="margin:14px 0 8px">Дополнительные</p>
+      <span class="chip blue">СНИЛС</span><span class="chip blue">загранпаспорт</span><span class="chip blue">полис ОМС</span><span class="chip blue">госномер ТС</span><span class="chip blue">VIN</span><span class="chip blue">ОГРН</span><span class="chip blue">номер банковского счёта</span>
+    </div>
+    <div class="grid g3">
+      <div class="card small"><h3>Вариации написания</h3><ul class="muted">
+        <li>регистр, включая ФИО строчными и ПРОПИСНЫМИ</li>
+        <li>даты <code>дд.мм.гггг</code>, <code>мм.дд.гггг</code>, <code>гггг.мм.дд</code>, словами целиком</li>
+        <li>«серия XXXX номер XXXXXX», «серия XX XX № XXXXXX»</li>
+        <li>падежные формы имён, разделители, невидимые символы</li>
+        <li>голое значение: payload из одного значения маскируется целиком</li></ul></div>
+      <div class="card small"><h3>Контрольные суммы</h3><p class="muted">Луна у карты, контрольные разряды у ИНН, СНИЛС, ОГРН и VIN. Номер карты без Луна рядом со словом «карта» тоже маскируется: пропуск дороже.</p></div>
+      <div class="card small"><h3>Как устроено</h3><p class="muted">Однопроходный лексер со смещениями в байтах, 9 ручных сканеров, 17 встроенных справочников. <code>regexp</code> в горячем пути нет, нейросетей нет.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Как принимается решение">
+  <div class="in">
+    <p class="eyebrow"><span class="num">07</span>Детекция · решение</p>
+    <h2>Десять цифр подряд — это паспорт, телефон или номер договора?</h2>
+    <p class="lead">Кандидату назначается уровень уверенности по набору сработавших условий, а не вероятность. Поэтому любое решение можно объяснить: на стенде видно правило, которое сработало.</p>
+    <div class="grid g-wide">
+      <div class="card tbl">
+        <table>
+          <tr><th>Уровень</th><th>Условие</th><th>Решение</th></tr>
+          <tr><td><span class="chip ok">certain</span></td><td>форма + контрольная сумма или самодостаточная грамматика (email, госномер)</td><td>маскируется всегда</td></tr>
+          <tr><td><span class="chip ok">strong</span></td><td>форма + явный маркер типа рядом</td><td>маскируется всегда</td></tr>
+          <tr><td><span class="chip amber">weak</span></td><td>совпала только форма</td><td>под <code>balanced</code> — если в том же предложении есть достоверное ПД другого типа</td></tr>
+          <tr><td><span class="chip red">denied</span></td><td>сработало контр-правило</td><td>не маскируется</td></tr>
+        </table>
+        <p class="small muted" style="margin-top:10px">Профили: <code>balanced</code> — по умолчанию и у <code>benchmark</code>; <code>strict</code> — только достоверные и сильные; <code>paranoid</code> — всё, что совпало по форме.</p>
+      </div>
+      <div class="stack">
+        <div class="card small">
+          <h3>Контр-правила и ловушки</h3>
+          <div class="sample" style="margin-top:6px"><span class="lbl">не меняется</span>Поэт Александр Пушкин жил на улице Мойки. Отделение банка: г. Москва, ул. Тверская, 7.</div>
+          <div class="sample" style="margin-top:8px"><span class="lbl">однофамилец-клиент защищён</span>Клиент <span class="mask">[ФИО_1]</span>, телефон <span class="mask">[ТЕЛЕФОН_1]</span></div>
+          <p class="muted" style="margin-top:8px">Правило асимметрично в сторону защиты: маркер клиента рядом снимает контр-правило.</p>
+        </div>
+        <div class="card small">
+          <h3>Дата словами целиком</h3>
+          <div class="sample">родилась <span class="mask">[ДАТА_РОЖДЕНИЯ_1]</span> года</div>
+          <p class="dim tiny" style="margin-top:6px">из «родилась двенадцатого марта тысяча девятьсот восемьдесят седьмого года»</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Системы-потребители">
+  <div class="in">
+    <p class="eyebrow"><span class="num">08</span>Настройки · потребители</p>
+    <h2>У каждой системы-потребителя своя политика</h2>
+    <p class="lead">Потребители заводятся в <code>config.yaml</code>. Для каждого задаются ключ, допуск, набор типов, стратегия маски, право восстановления, профиль и правила комбинаций. Шесть потребителей демонстрационной конфигурации:</p>
+    <div class="grid g3">
+      <div class="card ok small"><h3><code>benchmark</code> <span class="tag">без ключа</span></h3><p class="muted">Контракт <code>POST /process</code> для автопроверки. Все типы, <code>placeholder</code>, восстановление разрешено. Соответствия изолированы от остальных потребителей.</p></div>
+      <div class="card small"><h3><code>demo</code> <span class="tag">ключ жюри</span></h3><p class="muted">Все типы, <code>placeholder</code>, восстановление разрешено. Ключ <code>demo-key-for-jury</code> открывает стенд, API и прокси к модели; обращения к модели ограничены <code>model_rate</code>: 1 в секунду, до 5 подряд.</p></div>
+      <div class="card blue small"><h3><code>crm</code> <span class="tag">без demask</span></h3><p class="muted">9 типов, паспорт не входит. Карта и телефон скрываются звёздочками. ПИН и CVV маскируются только вместе с номером карты. <code>unmask</code> → <code>403</code>.</p></div>
+      <div class="card small"><h3><code>demo-token</code></h3><p class="muted">Стратегия <code>token</code>: <span class="mask">{{pii:ee8f05b5}}</span> — HMAC-SHA256, модель не видит даже тип.</p></div>
+      <div class="card small"><h3><code>demo-synthetic</code></h3><p class="muted">Стратегия <code>synthetic</code>: правдоподобная замена, текст для модели естественный.</p></div>
+      <div class="card red small"><h3><code>internal-analytics</code> <span class="tag">enabled: false</span></h3><p class="muted">Отключён: ключ не принимается, <code>401</code>. В <code>GET /readyz</code> виден как <code>internal-analytics:disabled</code>.</p></div>
+    </div>
+    <div class="card soft small" style="margin-top:16px">
+      <b>Изменение без пересборки.</b> <span class="muted">Правка <code>config.yaml</code> → <code>docker compose kill -s HUP ai-gateway</code> → валидация → атомарная публикация нового снимка. Невалидный файл отклоняется, сервис продолжает работать на прежних настройках.</span>
+    </div>
+  </div>
+</section>
+
+<!-- 9 ─────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Стратегии маскирования">
+  <div class="in">
+    <p class="eyebrow"><span class="num">09</span>Настройки · стратегии</p>
+    <h2>Один текст — четыре способа замены</h2>
+    <p class="lead">Стратегия задаётся для потребителя (<code>mask.default</code>) и для отдельного типа (<code>mask.per_type</code>). Ниже — настоящие ответы сервиса на один и тот же синтетический текст.</p>
+    <div class="sample" style="margin-bottom:14px"><span class="lbl">Исходный текст</span>Клиент <span class="pii">Иванов Иван Иванович</span>, карта <span class="pii">4111 1111 1111 1111</span>, тел. <span class="pii">+7 916 123-45-67</span>, почта <span class="pii">ivan.petrov@example.com</span></div>
+    <div class="tabs" role="tablist" id="stratTabs">
+      <button type="button" role="tab" aria-selected="true" aria-controls="st-ph" id="st-ph-t">placeholder</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="st-as" id="st-as-t">asterisks · crm</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="st-tk" id="st-tk-t">token</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="st-sy" id="st-sy-t">synthetic</button>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="st-ph" aria-labelledby="st-ph-t">
+      <div class="sample">Клиент <span class="mask">[ФИО_1]</span>, карта <span class="mask">[КАРТА_1]</span>, тел. <span class="mask">[ТЕЛЕФОН_1]</span>, почта <span class="mask">[EMAIL_1]</span></div>
+      <p class="small muted" style="margin-top:10px"><b>По умолчанию.</b> Полное сокрытие, модели виден тип, смысл запроса сохраняется. Неизменённая маска восстанавливается побайтово, изменённая — по плейсхолдерам.</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="st-as" aria-labelledby="st-as-t" hidden>
+      <div class="sample">Клиент <span class="mask">[ФИО_1]</span>, карта <span class="mask">**** **** **** ****</span>, тел. <span class="mask">+* *** ***-**-**</span>, почта <span class="mask">[EMAIL_1]</span></div>
+      <p class="small muted" style="margin-top:10px"><b>Структура значения видна, содержимое — нет.</b> У <code>crm</code> так скрыты карта и телефон (<code>per_type</code>), остальные типы — плейсхолдерами. Разные значения под одинаковыми звёздочками в изменённом тексте не восстанавливаются: вернулось бы не то значение.</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="st-tk" aria-labelledby="st-tk-t" hidden>
+      <div class="sample">Клиент <span class="mask">{{pii:ee8f05b5}}</span>, карта <span class="mask">{{pii:15b9fb1a}}</span>, тел. <span class="mask">{{pii:f4c3e7b3}}</span>, почта <span class="mask">{{pii:b77b4dc9}}</span></div>
+      <p class="small muted" style="margin-top:10px"><b>Модели не нужно знать даже тип.</b> HMAC-SHA256 с ключом <code>AIGW_TOKEN_KEY</code>; без ключа — случайный ключ на процесс, поэтому у вас токены будут другими.</p>
+    </div>
+    <div class="tabpanel" role="tabpanel" id="st-sy" aria-labelledby="st-sy-t" hidden>
+      <div class="sample">Клиент <span class="mask">Петров Пётр Петрович</span>, карта <span class="mask">4000 0000 0000 0002</span>, тел. <span class="mask">+7 900 000-00-00</span>, почта <span class="mask">user1@example.org</span></div>
+      <p class="small muted" style="margin-top:10px"><b>Максимально естественный текст для модели.</b> Синтетика повторяет форму исходного значения: число слов ФИО, род, порядок. В ответе модели восстанавливаются и производные формы — падежи, часть ФИО, последние цифры карты.</p>
+    </div>
+    <div class="card soft small" style="margin-top:16px"><b>Комбинации типов.</b> <span class="muted">У <code>crm</code>: <code>mask: [pin], only_with: [card_number]</code>. «Клиент просит сбросить пин 4821.» остаётся как есть, а «Карта 4111 1111 1111 1111, пин 4821.» → «Карта **** **** **** ****, пин [ПИН_1].»</span></div>
+  </div>
+</section>
+
+<!-- 10 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Расширяемость">
+  <div class="in">
+    <p class="eyebrow"><span class="num">10</span>Настройки · расширение</p>
+    <h2>Новый потребитель — запись в YAML. Новый тип ПД — три файла</h2>
+    <div class="grid g3">
+      <div class="card small">
+        <h3>Подключить систему</h3>
+        <div class="cmd block"><pre>  - id: support-bot
+    enabled: true
+    api_key_env: SUPPORT_BOT_API_KEY
+    types: [full_name, phone, email,
+            card_number, cvv, pin]
+    demask: true
+    profile: balanced
+    mask:
+      default: placeholder</pre><button type="button">Копировать</button></div>
+        <p class="muted" style="margin-top:8px">Ключ задаётся в <code>.env</code>. Дальнейшие правки применяются по <code>HUP</code>. В <code>/readyz</code> появится <code>support-bot:enabled</code>.</p>
+      </div>
+      <div class="card small">
+        <h3>Добавить тип ПД</h3>
+        <ol class="muted" style="padding-left:1.2em;margin:6px 0 0">
+          <li>Запись в реестр <code>internal/pii/types.go</code>: ключ, название, основа плейсхолдера.</li>
+          <li>Сканер <code>internal/detect/scan_&lt;имя&gt;.go</code>. Он регистрирует себя сам через <code>detect.Register</code>.</li>
+          <li>При необходимости — справочник <code>detect/dict/data/&lt;имя&gt;.txt</code>, он встраивается автоматически.</li>
+        </ol>
+        <p class="muted" style="margin-top:8px">Транспорт, маскирование и ядро не меняются. Так добавлены 7 дополнительных типов, последний — номер банковского счёта.</p>
+      </div>
+      <div class="card small">
+        <h3>Расширить справочник</h3>
+        <p class="muted">Строка в <code>internal/detect/dict/data/*.txt</code>: роли публичных персон (<code>counter_roles.txt</code>), публичные фамилии (<code>counter_public.txt</code>), домены организаций (<code>email_orgs.txt</code>) и ещё 14 файлов.</p>
+        <p class="muted">Справочники собираются один раз при старте в неизменяемый снимок, общий для всех запросов.</p>
+        <p class="tiny dim">Сейчас справочники встроены в бинарник, и правка требует пересборки. Вынос во внешний каталог — в плане развития.</p>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card ok small">
+        <h3>Инструкция по настройке — 5 предложений</h3>
+        <ol class="muted" style="padding-left:1.2em;margin:6px 0 0">
+          <li>Все настройки живут в <code>config.yaml</code>, а ключи доступа — в переменных окружения, имена которых указаны в конфигурации.</li>
+          <li>Чтобы подключить систему, добавьте в <code>consumers</code> запись с идентификатором, переменной ключа, типами ПД и стратегией маскирования.</li>
+          <li>У существующей системы <code>enabled</code> включает и отключает доступ, <code>types</code> задаёт типы, <code>mask</code> — способ замены, <code>demask</code> — право восстановления, <code>combinations</code> — маскирование только при совпадении типов.</li>
+          <li>Изменения применяются без перезапуска сигналом HUP: <code>docker compose kill -s HUP ai-gateway</code>.</li>
+          <li>Невалидный файл отклоняется, и сервис продолжает работать на прежних настройках.</li>
+        </ol>
+      </div>
+      <div class="card small">
+        <h3>Маскировать только в комбинации</h3>
+        <div class="cmd block"><pre>    combinations:
+      - mask: [pin]
+        only_with: [card_number]
+      - mask: [cvv]
+        only_with: [card_number]</pre><button type="button">Копировать</button></div>
+        <p class="muted" style="margin-top:8px">Так настроен <code>crm</code>: «ПИН 1234» остаётся как есть, «карта 4111 … ПИН 1234» — оба значения под маской. Правило меняется правкой списка и HUP, без пересборки; неизвестный тип в <code>mask</code> или <code>only_with</code> отклоняется при проверке файла.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Приватность">
+  <div class="in">
+    <p class="eyebrow"><span class="num">11</span>Приватность</p>
+    <h2>Утечка ПД на демо — не минус балл, а провал ключевой функции</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3>Инварианты</h3>
+        <ul class="small muted">
+          <li>Сырой текст, значения ПД, соответствия и ключи никогда не попадают в журнал, трассы, метрики, тексты ошибок и сообщения паник.</li>
+          <li>Соответствие записывается <b>до</b> ответа на маскирование — обратный шаг не получит маску, которой нет в хранилище.</li>
+          <li>Восстанавливаются только плейсхолдеры, выданные этому потребителю. Знание <code>payload_id</code> — не авторизация. Чужой, истёкший и неизвестный <code>id</code> дают одинаковый <code>404</code>.</li>
+          <li>Ответ модели проходит детекцию заново: если модель сама написала ПД, они тоже будут скрыты.</li>
+          <li>В тестах и документации только синтетические данные.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <div class="card ok small">
+          <h3>Доказательство, а не обещание</h3>
+          <p class="muted">Fake-LLM сохраняет фактическое тело каждого запроса. Через прокси прогоняются размеченные данные, и в сохранённых телах ищется <b>каждое</b> исходное значение, а не выборка. Отдельный сценарий моделирует отказ защиты: fake-LLM должен получить ноль запросов.</p>
+          <p class="tiny dim" style="margin-top:6px"><code>TestChatDoesNotLeakMarkedValuesDownstream</code>, <code>TestChatFailClosedSendsNothing</code> в <code>internal/httpapi/proxy_test.go</code>.</p>
+        </div>
+        <div class="card small">
+          <h3>Утечки в журнал и метрики</h3>
+          <p class="muted"><code>internal/obs/leak_test.go</code> ищет каждое размеченное значение в журнале, экспозиции <code>/metrics</code> и телах ответов.</p>
+        </div>
+        <div class="card small">
+          <h3>Стенд проверяет себя сам</h3>
+          <p class="muted">Блок «что ушло в модель» показывает тело запроса и сверку на утечку по каждому найденному значению. CSP <code>connect-src 'self'</code> запрещает странице ходить наружу.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Качество детекции">
+  <div class="in">
+    <p class="eyebrow"><span class="num">12</span>Качество</p>
+    <h2>Качество детекции на синтетическом корпусе</h2>
+    <p class="lead"><span class="tag result">RESULT</span> Сборка <code>641dafc</code> (23.09), корпус <code>corpusgen -seed 20260922</code>: 1 204 записи, 4 978 размеченных значений, 144 ловушки. Потребитель <code>benchmark</code>, профиль <code>balanced</code>, конкурентность 16.</p>
+    <div class="grid g4">
+      <div class="card kpi"><div class="v ok">0,9988</div><div class="l">доля сокрытия: значение не осталось в ответе ни целиком, ни частью; на втором корпусе (seed 20260925) — 0,9982. <span class="tag target">TARGET</span> ТЗ — 0,95</div></div>
+      <div class="card kpi"><div class="v ok">1,0000</div><div class="l">precision; F1 — 0,9994</div></div>
+      <div class="card kpi"><div class="v ok">0 / 144</div><div class="l">ловушек сработало</div></div>
+      <div class="card kpi"><div class="v ok">0 / 1 204</div><div class="l">ошибок восстановления, побайтово</div></div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card small"><h3>Сильные стороны</h3><p class="muted">Все типы, кроме двух, — 1,0000, включая ФИО (613 из 613), место рождения и орган выдачи без маркера. Голые значения — 204 из 204. Записей без ПД изменено — 0 из 96. На 725 фразах жюри r4+r5 за 23.09: утечек 105 → 3 из 960 значений, лишних масок 18 → 0 из 192.</p></div>
+      <div class="card amber small"><h3>Где слабее</h3><p class="muted">Орган выдачи — 0,9753 (частичные утечки в длинных записях), CVV — 0,9917. Вне корпуса — строчная фамилия-прилагательное перед именем («заемщик белый андрей»), 4+6 цифр без слова «паспорт»; латиница — только со словарным именем («Ivan Ivanov», а не «Mr. Melnik»).</p></div>
+      <div class="card small"><h3>Честные оговорки</h3><p class="muted">Формула официальной метрики не опубликована, совместимость с ней не утверждается. Избыточность — 0,0223: это повторы найденных значений, которые корпус не размечает. Методика — <code>docs/spec/QUALITY.md</code>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Производительность">
+  <div class="in">
+    <p class="eyebrow"><span class="num">13</span>Производительность</p>
+    <h2>Требование ТЗ — 1 000 запр/с, бонус — 2 000. Публичный адрес держит 6 529</h2>
+    <p class="lead">Закрытый контур: 200 соединений, 5 минут, контракт <code>/process</code>, прямой и обратный шаг.</p>
+    <div class="card" style="margin-bottom:12px;padding-top:24px;padding-bottom:14px">
+      <figure class="bars" aria-label="Пропускная способность: 38 435 запросов в секунду локально, 6 529 на публичном адресе при целях 1 000 и 2 000">
+        <div class="bar-row" title="Публичный адрес, клиент через интернет: 6 529 запр/с, среднее 30,6 мс, из них сеть не меньше 21 мс, p99 64,6 мс">
+          <div class="name"><b>Публичный адрес</b><br><span class="dim">VPS, 2 vCPU</span></div>
+          <div class="bar-track"><div class="bar" style="width:16.99%"></div><span class="bar-val" style="left:16.99%">6 529 запр/с</span>
+            <div class="ref" style="left:2.6%"><span class="before">1 000</span></div><div class="ref" style="left:5.2%"><span>2 000</span></div></div>
+        </div>
+        <div class="bar-row" title="Локально через loopback, Apple M1 Max: 38 435 запр/с, среднее 5,2 мс, p99 7,2 мс">
+          <div class="name"><b>Локально</b><br><span class="dim">M1 Max, loopback</span></div>
+          <div class="bar-track"><div class="bar" style="width:100%"></div><span class="bar-val" style="right:8px;color:var(--bg)">38 435 запр/с</span>
+            <div class="ref" style="left:2.6%"></div><div class="ref" style="left:5.2%"></div></div>
+        </div>
+      </figure>
+      <p class="tiny dim" style="margin-top:12px">Пунктир — <span style="color:var(--amber)">TARGET ТЗ</span>: 1 000 запр/с (требование) и 2 000 запр/с (бонус). Шкала линейная. Ошибок и расхождений восстановления в обоих прогонах — 0.</p>
+    </div>
+    <div class="card tbl small">
+        <table>
+          <tr><th>Режим <span class="tag result">RESULT</span></th><th>Результат</th></tr>
+          <tr><td>Публичный адрес, 200 соединений, 5 мин</td><td><b>6 529 запр/с</b>; среднее 30,6 мс, из них сеть ≥ 21 мс; p99 64,6 мс; 1 893 433 ответа, 0 ошибок</td></tr>
+          <tr><td>Локально, 200 соединений, 5 мин</td><td><b>38 435 запр/с</b>; среднее 5,2 мс, p99 7,2 мс</td></tr>
+          <tr><td>Время сервиса на одно маскирование</td><td>0,025 мс локально, 0,052 мс на VPS</td></tr>
+          <tr><td>Текст на 100 000 токенов, один запрос</td><td>40 мс (медиана), из них детекция 22,7 мс</td></tr>
+          <tr><td>Тексты по 100 000 токенов, 32 соединения</td><td>среднее 112,5 мс, p99 234 мс</td></tr>
+          <tr><td>Поиск предела</td><td>p99 ≤ 1 с до 3 200 соединений</td></tr>
+        </table>
+        <p class="tiny dim" style="margin-top:8px">На VPS при 6 529 запр/с процессор загружен на ~70 % из 200 %: упор в сеть, а не в сервис. Скорость дают однопроходный лексер, ручные сканеры без <code>regexp</code> и справочники, собранные один раз. Условия замеров — <code>docs/spec/PERFORMANCE.md</code> §11–13.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 14 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Дополнительные возможности">
+  <div class="in">
+    <p class="eyebrow"><span class="num">14</span>Дополнительные возможности</p>
+    <h2>Сделано из списка ТЗ §6 и сверх него</h2>
+    <div class="grid g-wide">
+      <div class="card tbl small">
+        <table>
+          <tr><th>Возможность ТЗ §6</th><th>Чем подтверждено</th></tr>
+          <tr><td>Токенизация и синтетическая замена</td><td>стратегии <code>token</code> и <code>synthetic</code>, <code>internal/mask/</code> и тесты; потребители <code>demo-token</code>, <code>demo-synthetic</code></td></tr>
+          <tr><td>Вид маскирования под систему</td><td><code>mask.default</code> и <code>mask.per_type</code>; у <code>crm</code> карта и телефон — звёздочками</td></tr>
+          <tr><td>Маскирование только при комбинации типов</td><td><code>combinations</code> у <code>crm</code>; <code>internal/policy/policy_test.go</code></td></tr>
+          <tr><td>Документы кроме паспорта РФ</td><td>СНИЛС, загранпаспорт, полис ОМС, госномер, VIN, ОГРН, номер счёта; <code>scan_docs_test.go</code>, <code>scan_account_test.go</code></td></tr>
+          <tr><td>2 000 RPS при Latency ≤ 1 с</td><td>38 435 запр/с локально, 6 529 на публичном адресе</td></tr>
+        </table>
+      </div>
+      <div class="card ok small">
+        <h3>Сверх ТЗ</h3>
+        <ul class="muted">
+          <li>Стенд по вкладкам: «что ушло в модель», сверка на утечку, ответ до и после восстановления.</li>
+          <li>Дашборд с графиками по <code>/metrics</code>, история, трассировка этапов, поток журнала.</li>
+          <li>Прокси к модели, совместимый с OpenAI: <code>/v1/chat/completions</code>.</li>
+          <li>Явный API <code>/api/v1/mask</code> и <code>/unmask</code> без модели.</li>
+          <li>Профили отнесения <code>balanced</code> / <code>strict</code> / <code>paranoid</code>.</li>
+          <li>Лимит обращений к модели по ключу <code>model_rate</code>, журнал отказов доступа.</li>
+          <li>Перезагрузка настроек сигналом без простоя, с валидацией.</li>
+          <li>Инструменты: генератор корпуса, замер качества, нагрузочный прогон.</li>
+          <li>Архив сдачи с самопроверкой на секреты и лишние файлы.</li>
+          <li>Код под автопроверку: ни одной функции сложнее 15, ни одной строки, повторённой в файле трижды, <code>make lint</code> — 0 замечаний во всех четырёх модулях.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Ограничения">
+  <div class="in">
+    <p class="eyebrow"><span class="num">15</span>Ограничения</p>
+    <h2>Что известно и не закрыто</h2>
+    <div class="grid g3">
+      <div class="card amber small">
+        <h3>Эксплуатация</h3>
+        <ul class="muted">
+          <li><b>Один экземпляр.</b> Соответствия живут в памяти процесса: вторая реплика сломала бы восстановление, перезапуск их теряет.</li>
+          <li><b>TLS сервис не терминирует</b> — предполагается обратный прокси. Стенд и контракт работают по HTTP, как допускает проверяющая система.</li>
+          <li><b>Шифрования хранилища нет.</b> Соответствия только в памяти, TTL 30 минут, на диск и в сеть не попадают.</li>
+          <li>Демо-ключ опубликован намеренно, на время проверки. Обращения к модели по нему ограничены <code>model_rate</code>, после проверки ключ меняется переменной <code>DEMO_API_KEY</code>.</li>
+        </ul>
+      </div>
+      <div class="card amber small">
+        <h3>Детекция</h3>
+        <ul class="muted">
+          <li>Место рождения и орган выдачи без маркера и соседних ПД — слабее остальных типов.</li>
+          <li>Имя латиницей распознаётся по словарю имён: одна фамилия после «Mr.» и имя вне словаря остаются открытыми.</li>
+          <li>Фамилии-прилагательные («Белый») и двухбуквенные («Ли») не достраиваются — иначе лишние маски на обычных словах.</li>
+          <li>Адрес — один тип: «город скрыть, улицу оставить» не настраивается.</li>
+          <li>Дополнительные документы проверены тестами, но не корпусом.</li>
+        </ul>
+      </div>
+      <div class="card amber small">
+        <h3>Наблюдаемость и контракт</h3>
+        <ul class="muted">
+          <li>TPS считается по суррогатному токену в 4 байта. Токены модели из ответа AlfaGen в метрики пока не идут.</li>
+          <li>Журнал — одна запись на запрос с длительностями этапов. Полная трассировка — на стенде.</li>
+          <li><code>benchmark</code> нельзя отключить: <code>/process</code> не проверяет допуск, чтобы не оборвать прогон проверки.</li>
+          <li>Предел — 20 000 замен на запрос. Сверх него <code>/process</code> скрывает строку целиком, продуктовые контуры отвечают <code>413</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="План развития: обзор">
+  <div class="in">
+    <p class="eyebrow"><span class="num">16</span>План развития</p>
+    <h2>Три горизонта: от пилота к платформе защиты ПД</h2>
+    <p class="lead">Каждый шаг снимает конкретное ограничение из предыдущего слайда. Порядок — по убыванию пользы для пилота в банке.</p>
+    <div class="grid g3">
+      <div class="card horizon h1">
+        <span class="dir">Горизонт 1 · 0–1 мес</span>
+        <h3>Пилот</h3>
+        <p class="small muted">Несколько реплик и сохранение соответствий при перезапуске. Шифрование, TLS/mTLS, аудит восстановлений. Закрыть слабые типы.</p>
+        <p class="small"><span class="chip ok">Store в Redis</span><span class="chip ok">mTLS</span><span class="chip ok">аудит demask</span><span class="chip ok">справочники</span></p>
+      </div>
+      <div class="card horizon h2">
+        <span class="dir">Горизонт 2 · 1–3 мес</span>
+        <h3>Промышленная эксплуатация</h3>
+        <p class="small muted">Балансировка и автомасштабирование, несколько LLM-провайдеров, квоты, настройки без пересборки, SLO и алерты.</p>
+        <p class="small"><span class="chip blue">L7 LB</span><span class="chip blue">LLM-маршрутизатор</span><span class="chip blue">admin API</span><span class="chip blue">OpenTelemetry</span><span class="chip blue">Helm</span></p>
+      </div>
+      <div class="card horizon h3">
+        <span class="dir">Горизонт 3 · 3–6+ мес</span>
+        <h3>Платформа</h3>
+        <p class="small muted">Потоковые ответы, плагины сканеров, структурированные входы и файлы, новые документы, контур качества на живом трафике. Отдельный слой — LLM-аналитик внутри контура.</p>
+        <p class="small"><span class="chip amber">SSE-стриминг</span><span class="chip amber">плагины</span><span class="chip amber">JSON и DOCX</span><span class="chip amber">shadow mode</span><span class="chip amber">LLM-аналитик</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Масштабирование и балансировка">
+  <div class="in">
+    <p class="eyebrow"><span class="num">17</span>План развития · целевая архитектура</p>
+    <h2>Как вырасти из одного экземпляра</h2>
+    <p class="lead">Сервис спроектирован под этот шаг: хранилище закрыто интерфейсом <code>Store</code>, выпуск в модель — одна точка <code>internal/llm</code>. Замена реализаций не трогает детекцию и транспорт.</p>
+    <div class="diagram">
+      <svg role="img" aria-label="Целевая схема: потребители идут через L7-балансировщик к нескольким репликам ai-gateway без состояния; реплики хранят соответствия в Redis или Valkey с шифрованием, ключи берут из KMS, в модели ходят через маршрутизатор с резервным провайдером, телеметрию отдают в Prometheus, OpenTelemetry и SIEM." viewBox="0 0 1200 430">
+        <defs>
+          <marker id="bh" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head" points="0 0, 9 3.5, 0 7"/></marker>
+          <marker id="bh-am" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head amber" points="0 0, 9 3.5, 0 7"/></marker>
+        </defs>
+        <rect class="d-zone" x="396" y="24" width="228" height="386" rx="14"/>
+        <text class="d-zone-lbl" x="412" y="48">РЕПЛИКИ · HPA</text>
+
+        <path class="d-a" d="M170 234 H218" marker-end="url(#bh)"/>
+        <path class="d-a" d="M370 234 H394" marker-end="url(#bh)"/>
+        <text class="d-lbl" x="222" y="306">хеш по payload_id,</text>
+        <text class="d-lbl" x="222" y="322">пока Store локальный</text>
+        <path class="d-a" d="M626 95 H698" marker-end="url(#bh)"/>
+        <path class="d-a dash" d="M626 205 H698" marker-end="url(#bh)"/>
+        <path class="d-a dash" d="M626 355 H698" marker-end="url(#bh)"/>
+        <path class="d-a amber" d="M626 272 H848" marker-end="url(#bh-am)"/>
+        <path class="d-a amber" d="M1000 252 L1040 190" marker-end="url(#bh-am)"/>
+        <path class="d-a amber" d="M1000 292 L1040 330" marker-end="url(#bh-am)"/>
+
+        <rect class="d-node" x="20" y="195" width="150" height="78" rx="10"/>
+        <text class="d-t" x="95" y="227" text-anchor="middle">Потребители</text>
+        <text class="d-s" x="95" y="249" text-anchor="middle">CRM, боты, АРМ</text>
+
+        <rect class="d-node" x="220" y="195" width="150" height="78" rx="10"/>
+        <text class="d-t" x="295" y="227" text-anchor="middle">Балансировщик</text>
+        <text class="d-s" x="295" y="249" text-anchor="middle">L7, mTLS, /readyz</text>
+
+        <rect class="d-node hot" x="420" y="66" width="180" height="70" rx="10"/>
+        <text class="d-t" x="510" y="96" text-anchor="middle">ai-gateway №1</text>
+        <text class="d-s" x="510" y="118" text-anchor="middle">без состояния</text>
+        <rect class="d-node hot" x="420" y="186" width="180" height="70" rx="10"/>
+        <text class="d-t" x="510" y="216" text-anchor="middle">ai-gateway №2</text>
+        <text class="d-s" x="510" y="238" text-anchor="middle">без состояния</text>
+        <rect class="d-node hot alt" x="420" y="306" width="180" height="70" rx="10"/>
+        <text class="d-t" x="510" y="336" text-anchor="middle">ai-gateway №N</text>
+        <text class="d-s" x="510" y="358" text-anchor="middle">по CPU и RPS</text>
+
+        <rect class="d-node" x="700" y="56" width="140" height="78" rx="10"/>
+        <text class="d-t" x="770" y="88" text-anchor="middle">Store</text>
+        <text class="d-s" x="770" y="110" text-anchor="middle">Redis · AES-GCM</text>
+
+        <rect class="d-node" x="700" y="166" width="140" height="78" rx="10"/>
+        <text class="d-t" x="770" y="198" text-anchor="middle">KMS / Vault</text>
+        <text class="d-s" x="770" y="220" text-anchor="middle">ключи, ротация</text>
+
+        <rect class="d-node" x="700" y="316" width="140" height="78" rx="10"/>
+        <text class="d-t" x="770" y="348" text-anchor="middle">Наблюдаемость</text>
+        <text class="d-s" x="770" y="370" text-anchor="middle">OTel · Grafana · SIEM</text>
+
+        <rect class="d-node" x="850" y="233" width="150" height="78" rx="10"/>
+        <text class="d-t" x="925" y="265" text-anchor="middle">Маршрутизатор</text>
+        <text class="d-s" x="925" y="287" text-anchor="middle">breaker, квоты</text>
+
+        <rect class="d-node ext" x="1042" y="150" width="145" height="70" rx="10"/>
+        <text class="d-t" x="1114" y="180" text-anchor="middle">AlfaGen</text>
+        <text class="d-s" x="1114" y="202" text-anchor="middle">основная модель</text>
+        <rect class="d-node ext" x="1042" y="300" width="145" height="70" rx="10"/>
+        <text class="d-t" x="1114" y="330" text-anchor="middle">Резерв</text>
+        <text class="d-s" x="1114" y="352" text-anchor="middle">другой провайдер</text>
+      </svg>
+    </div>
+    <div class="grid g3">
+      <div class="card small compact"><h3>Масштабирование</h3><p class="muted">Реплики без состояния, соответствия — в Redis или Valkey, оригинал зашифрован AES-GCM с ключом из KMS. HPA по CPU и RPS.</p></div>
+      <div class="card small compact"><h3>Балансировка</h3><p class="muted">Envoy или Nginx по <code>/readyz</code>. Шаг до Redis — consistent hashing по <code>payload_id</code>: маска и восстановление попадают на одну реплику.</p></div>
+      <div class="card small compact"><h3>Отказоустойчивость upstream</h3><p class="muted">Веса, circuit breaker, резервный провайдер, квоты на потребителя. Точка выпуска остаётся одна, её предусловия не меняются.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 18 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Горизонт 1 · пилот">
+  <div class="in">
+    <p class="eyebrow"><span class="num">18</span>План развития · горизонт 1 · 0–1 мес</p>
+    <h2>Пилот: сделать сервис пригодным для боевого контура банка</h2>
+    <div class="grid g2">
+      <div class="card horizon h1">
+        <div class="item"><span class="dir">Масштабирование</span><div class="t">Внешнее хранилище соответствий <span class="size">M</span></div><div class="w">Redis или Valkey за интерфейсом <code>Store</code>, TTL на стороне хранилища. Снимает «один экземпляр» и потерю соответствий при перезапуске.</div></div>
+        <div class="item"><span class="dir">Безопасность</span><div class="t">Шифрование поля оригинала <span class="size">S</span></div><div class="w">AES-GCM и envelope encryption через KMS. Дамп Redis не раскрывает ПД.</div></div>
+        <div class="item"><span class="dir">Безопасность</span><div class="t">TLS и mTLS для потребителей <span class="size">S</span></div><div class="w">Сертификат потребителя как второй фактор к ключу; ключи — из Vault или менеджера секретов, ротация ключа HMAC для <code>token</code>.</div></div>
+      </div>
+      <div class="card horizon h1">
+        <div class="item"><span class="dir">Аудит</span><div class="t">Журнал событий восстановления <span class="size">S</span></div><div class="w">Кто, когда и по какому <code>id</code> восстанавливал, без значений ПД. Выгрузка в SIEM банка.</div></div>
+        <div class="item"><span class="dir">Качество</span><div class="t">Слабые типы и имена латиницей <span class="size">M</span></div><div class="w">Пополнить справочники мест рождения и органов выдачи. Распознавать «Ivan Ivanov» — с отдельным замером точности, чтобы не получить лишних масок.</div></div>
+        <div class="item"><span class="dir">Наблюдаемость</span><div class="t">Токены модели в TPS <span class="size">S</span></div><div class="w">Брать <code>usage</code> из ответа AlfaGen вместо суррогата «4 байта = токен».</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 19 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Горизонт 2 · эксплуатация">
+  <div class="in">
+    <p class="eyebrow"><span class="num">19</span>План развития · горизонт 2 · 1–3 мес</p>
+    <h2>Промышленная эксплуатация: нагрузка, настройки и сопровождение</h2>
+    <div class="grid g3">
+      <div class="card horizon h2">
+        <div class="item"><span class="dir">Балансировка</span><div class="t">L7-балансировщик и HPA <span class="size">M</span></div><div class="w">Envoy или Nginx по <code>/readyz</code>, мягкий вывод реплики, автомасштабирование по CPU и RPS.</div></div>
+        <div class="item"><span class="dir">Upstream</span><div class="t">Маршрутизатор моделей <span class="size">M</span></div><div class="w">Несколько провайдеров, веса, circuit breaker, резерв при недоступности AlfaGen.</div></div>
+        <div class="item"><span class="dir">Upstream</span><div class="t">Квоты по токенам <span class="size">S</span></div><div class="w"><code>model_rate</code> уже ограничивает запросы по ключу. Следующий шаг — квоты по токенам модели и общий счётчик на все реплики.</div></div>
+      </div>
+      <div class="card horizon h2">
+        <div class="item"><span class="dir">Настройки</span><div class="t">Справочники без пересборки <span class="size">S</span></div><div class="w">Внешний каталог справочников и контр-правил с перезагрузкой по <code>HUP</code> и валидацией.</div></div>
+        <div class="item"><span class="dir">Настройки</span><div class="t">Компоненты адреса по отдельности <span class="size">M</span></div><div class="w">Город, улица, дом, квартира — отдельные типы в <code>types</code> и <code>per_type</code>.</div></div>
+        <div class="item"><span class="dir">Настройки</span><div class="t">Admin API и GitOps <span class="size">M</span></div><div class="w">Изменение политик через API с RBAC и журналом изменений. Конфигурация в git, выкатка через CI.</div></div>
+      </div>
+      <div class="card horizon h2">
+        <div class="item"><span class="dir">Наблюдаемость</span><div class="t">OpenTelemetry и SLO <span class="size">M</span></div><div class="w">Трассы этапов в общий коллектор, готовые дашборды Grafana, алерты на латентность, ошибки и деградацию.</div></div>
+        <div class="item"><span class="dir">Эксплуатация</span><div class="t">Helm-чарт и blue-green <span class="size">S</span></div><div class="w">Выкатка в Kubernetes без простоя, проверки готовности, откат.</div></div>
+        <div class="item"><span class="dir">Качество</span><div class="t">Регрессия качества в CI <span class="size">S</span></div><div class="w">Корпус и <code>qualitycheck</code> на каждый MR. Падение сокрытия блокирует слияние.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 20 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Горизонт 3 · платформа">
+  <div class="in">
+    <p class="eyebrow"><span class="num">20</span>План развития · горизонт 3 · 3–6+ мес</p>
+    <h2>Платформа: новые форматы, новые данные, качество на живом трафике</h2>
+    <div class="grid g3">
+      <div class="card horizon h3">
+        <div class="item"><span class="dir">Производительность</span><div class="t">Потоковые ответы <span class="size">L</span></div><div class="w"><code>stream: true</code> (SSE): восстановление масок в скользящем окне, чтобы маска на границе чанков не разорвалась.</div></div>
+        <div class="item"><span class="dir">Производительность</span><div class="t">PGO и Ахо — Корасик <span class="size">S</span></div><div class="w">Сборка Go по профилю боевой нагрузки. Один автомат для всех словарей вместо поиска по каждому.</div></div>
+      </div>
+      <div class="card horizon h3">
+        <div class="item"><span class="dir">Расширение</span><div class="t">Плагины сканеров <span class="size">M</span></div><div class="w">Стабильный интерфейс сканера. Команды банка добавляют свои типы без правок ядра.</div></div>
+        <div class="item"><span class="dir">Расширение</span><div class="t">Структурированные входы <span class="size">L</span></div><div class="w">JSON с политикой по полям, DOCX и PDF, аргументы tool calls. Совместимость с API Anthropic и gRPC.</div></div>
+        <div class="item"><span class="dir">Расширение</span><div class="t">Новые реквизиты <span class="size">M</span></div><div class="w">IBAN, БИК, SWIFT, ИИН Казахстана и Беларуси.</div></div>
+      </div>
+      <div class="card horizon h3">
+        <div class="item"><span class="dir">Стратегии</span><div class="t">Format-preserving encryption <span class="size">M</span></div><div class="w">FF1 как стратегия маски: значение сохраняет формат и обратимо только с ключом.</div></div>
+        <div class="item"><span class="dir">Качество</span><div class="t">Shadow mode и обратная связь <span class="size">M</span></div><div class="w">Строгий профиль в тени на части трафика: расхождения видны без влияния на ответ. Операторы отмечают ложные срабатывания, отслеживаем дрейф качества.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Контур аналитики на LLM">
+  <div class="in">
+    <p class="eyebrow"><span class="num">21</span>План развития · горизонт 3 · отдельный слой</p>
+    <h2>LLM внутри контура банка — аналитик рядом с защитой, а не часть её</h2>
+    <p class="lead">Решает, что маскировать, по-прежнему только детерминированная защита. Модель внутри контура читает обезличенную телеметрию, находит аномалии, сообщает в ИБ об ошибках маскирования и восстановления и предлагает новые паттерны ПД.</p>
+    <div class="diagram">
+      <svg role="img" aria-label="Схема: ai-gateway пишет телеметрию без ПД; LLM-аналитик внутри контура банка читает её вне горячего пути, отправляет инциденты в ИБ и SIEM и предлагает кандидаты правил; после ревью и замера на корпусе правило возвращается в ai-gateway детерминированным справочником." viewBox="0 0 1200 300">
+        <defs>
+          <marker id="ch" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head" points="0 0, 9 3.5, 0 7"/></marker>
+          <marker id="ch-ok" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon class="d-head ok" points="0 0, 9 3.5, 0 7"/></marker>
+        </defs>
+        <rect class="d-zone" x="6" y="8" width="1188" height="284" rx="14"/>
+        <text class="d-zone-lbl" x="24" y="32">КОНТУР БАНКА · НАРУЖУ НИЧЕГО НЕ УХОДИТ</text>
+
+        <path class="d-a" d="M170 140 H228" marker-end="url(#ch)"/>
+        <path class="d-a" d="M400 140 H458" marker-end="url(#ch)"/>
+        <text class="d-lbl" x="550" y="200" text-anchor="middle">вне горячего пути запроса</text>
+        <path class="d-a" d="M640 125 L718 80" marker-end="url(#ch)"/>
+        <path class="d-a" d="M640 155 L718 200" marker-end="url(#ch)"/>
+        <path class="d-a" d="M890 225 H948" marker-end="url(#ch)"/>
+        <path class="d-a ok" d="M1050 260 V280 H95 V182" marker-end="url(#ch-ok)"/>
+        <text class="d-lbl ok" x="420" y="274">детерминированное правило или справочник → HUP</text>
+
+        <rect class="d-node hot" x="20" y="100" width="150" height="80" rx="10"/>
+        <text class="d-t" x="95" y="134" text-anchor="middle">ai-gateway</text>
+        <text class="d-s" x="95" y="156" text-anchor="middle">решает только он</text>
+
+        <rect class="d-node" x="230" y="100" width="170" height="80" rx="10"/>
+        <text class="d-t" x="315" y="134" text-anchor="middle">Телеметрия без ПД</text>
+        <text class="d-s" x="315" y="156" text-anchor="middle">журнал, метрики, формы</text>
+
+        <rect class="d-node alt" x="460" y="100" width="180" height="80" rx="10"/>
+        <text class="d-t" x="550" y="134" text-anchor="middle">LLM-аналитик</text>
+        <text class="d-s" x="550" y="156" text-anchor="middle">модель внутри контура</text>
+
+        <rect class="d-node" x="720" y="44" width="170" height="80" rx="10"/>
+        <text class="d-t" x="805" y="78" text-anchor="middle">ИБ · SIEM</text>
+        <text class="d-s" x="805" y="100" text-anchor="middle">инциденты, аномалии</text>
+
+        <rect class="d-node" x="720" y="185" width="170" height="80" rx="10"/>
+        <text class="d-t" x="805" y="219" text-anchor="middle">Кандидаты правил</text>
+        <text class="d-s" x="805" y="241" text-anchor="middle">маркеры, справочники</text>
+
+        <rect class="d-node" x="950" y="185" width="200" height="75" rx="10"/>
+        <text class="d-t" x="1050" y="217" text-anchor="middle">Ревью и замер</text>
+        <text class="d-s" x="1050" y="239" text-anchor="middle">человек + qualitycheck</text>
+      </svg>
+    </div>
+    <div class="grid g3">
+      <div class="card small compact">
+        <h3>Аномалии и ошибки → ИБ</h3>
+        <p class="muted">Всплески <code>degraded</code> и <code>fail_closed</code>; серии <code>404</code>/<code>409</code> на <code>unmask</code> — перебор чужих <code>id</code>; отказы <code>demask_not_allowed</code>; ПД в ответе модели; невосстановленные маски. События сводятся в инцидент с <code>request_id</code>, потребителем и причиной.</p>
+      </div>
+      <div class="card small compact">
+        <h3>Паттерны ПД</h3>
+        <p class="muted">Значений аналитик не видит, только форму: «<code>DDDD DDDDDD</code> после слова „полис“ осталось без маски» — новое поле журнала. Модель предлагает маркер, словарь или контр-правило; человек проверяет, <code>qualitycheck</code> замеряет, правило уходит в <code>detect/dict</code>.</p>
+      </div>
+      <div class="card amber small compact">
+        <h3>Границы <span class="size">L</span></h3>
+        <p class="muted">Модель не стоит на пути запроса и не решает, маскировать ли: детекция остаётся детерминированной, как требует ТЗ. Отказ аналитика защиту не ослабляет.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 22 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Сверка с артефактами ТЗ">
+  <div class="in">
+    <p class="eyebrow"><span class="num">22</span>Обязательные артефакты</p>
+    <h2>Пять обязательных артефактов ТЗ — где лежит каждый</h2>
+    <ul class="check">
+      <li><b>Рабочий демо-сервис-прокси, запускаемый по README, с точками входа в LLM и обратно.</b><br>
+        <span class="small muted">Публичный адрес <code class="host">94.228.167.253:8080</code>, <code>POST /process</code>, <code>/v1/chat/completions</code>, <code>/api/v1/mask</code> и <code>/unmask</code>. Запуск — <code>docker compose up -d --build</code> по разделу «Быстрый старт» в <code>README.md</code>.</span></li>
+      <li><b>Инструкция для жюри: тестовый текст, маска и восстановление, журнал и метрики.</b><br>
+        <span class="small muted">Раздел «Инструкция для жюри» в README, слайды 3–4, стенд <a href="/">/</a>, <a href="/#logs">/#logs</a>, <a href="/#dashboard">/#dashboard</a>, <a href="/metrics">/metrics</a>, <code>scripts/demo.sh</code>.</span></li>
+      <li><b>Схема архитектуры и настроек: потребители, типы ПД, правила маскирования.</b><br>
+        <span class="small muted">Слайды 5–10, <code>docs/diagrams/architecture.svg</code> и <code>settings.svg</code>, <code>docs/spec/ARCHITECTURE.md</code>, разделы README «Настройка» и «Что распознаётся».</span></li>
+      <li><b>Сведения о производительности и список дополнительных возможностей.</b><br>
+        <span class="small muted">Слайды 12–14, <code>docs/spec/PERFORMANCE.md</code>, <code>docs/spec/QUALITY.md</code>, разделы README «Производительность» и «Дополнительные возможности».</span></li>
+      <li><b>Ограничения решения и план развития после хакатона.</b><br>
+        <span class="small muted">Слайды 15–21, раздел README «Ограничения и план развития», <code>docs/spec/DECISIONS.md</code> §4–5.</span></li>
+    </ul>
+    <div class="hero-links">
+      <a class="btn primary" href="/">Открыть стенд</a>
+      <a class="btn" href="/#dashboard">Дашборд</a>
+      <a class="btn" href="/readyz">/readyz</a>
+      <a class="btn" href="#1">К началу</a>
+    </div>
+  </div>
+</section>
+
+<!-- 23 ────────────────────────────────────────────────────────────────── -->
+<section class="slide" data-title="Команда">
+  <div class="in">
+    <p class="eyebrow"><span class="num">23</span>Команда</p>
+    <h2>Команда</h2>
+    <div class="grid g4 team-grid">
+      <div class="card kpi"><div class="v">Антон Федоров</div><div class="l"><span class="chip ok">капитан</span></div></div>
+      <div class="card kpi"><div class="v">Дмитрий Кацев</div><div class="l">участник</div></div>
+      <div class="card kpi"><div class="v">Александр Внуков</div><div class="l">участник</div></div>
+      <div class="card kpi"><div class="v">Анастасия Андреева</div><div class="l">участник</div></div>
+    </div>
+    <div class="hero-links">
+      <a class="btn primary" href="/">Открыть стенд</a>
+      <a class="btn" href="#1">К началу</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var deck = document.getElementById("deck");
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var dots = document.getElementById("dots");
+  var counter = document.getElementById("counter");
+  var progress = document.getElementById("progress");
+  var overview = document.getElementById("overview");
+  var ovGrid = document.getElementById("ovGrid");
+  var current = 0;
+
+  // Открыта с сервиса — команды показывают его адрес. Открыта с диска —
+  // ссылки на стенд вести некуда, остаётся адрес публичного стенда в тексте.
+  var served = location.protocol.startsWith("http");
+  if (served) {
+    document.querySelectorAll(".host").forEach(function (el) { el.textContent = location.host; });
+    // Свой payload_id на каждое открытие: стенд общий, и два проверяющих с
+    // одинаковым «jury-1» получили бы запись друг друга вместо своей маски.
+    var pid = "jury-" + Math.random().toString(36).slice(2, 8);
+    document.querySelectorAll("a.grafana").forEach(function (el) {
+      el.href = location.protocol + "//" + location.hostname + ":3000/";
+    });
+    document.querySelectorAll(".pid").forEach(function (el) { el.textContent = pid; });
+  } else {
+    document.documentElement.classList.add("is-file");
+  }
+
+  function titleOf(s, i) {
+    return s.getAttribute("data-title") || ("Слайд " + (i + 1));
+  }
+
+  slides.forEach(function (s, i) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.title = (i + 1) + ". " + titleOf(s, i);
+    b.setAttribute("aria-label", b.title);
+    b.addEventListener("click", function () { go(i); });
+    dots.appendChild(b);
+
+    var c = document.createElement("button");
+    c.type = "button";
+    var n = document.createElement("span");
+    n.className = "n";
+    n.textContent = String(i + 1).padStart(2, "0");
+    c.appendChild(n);
+    c.appendChild(document.createTextNode(titleOf(s, i)));
+    c.addEventListener("click", function () { closeOverview(); go(i, true); });
+    ovGrid.appendChild(c);
+  });
+
+  function mark(i) {
+    current = i;
+    counter.textContent = (i + 1) + " / " + slides.length;
+    progress.style.width = ((i + 1) / slides.length * 100) + "%";
+    Array.prototype.forEach.call(dots.children, function (d, k) {
+      d.setAttribute("aria-current", k === i ? "true" : "false");
+    });
+    Array.prototype.forEach.call(ovGrid.children, function (d, k) {
+      d.setAttribute("aria-current", k === i ? "true" : "false");
+    });
+    var h = "#" + (i + 1);
+    if (location.hash !== h) {
+      history.replaceState(null, "", h);
+    }
+  }
+
+  // Плавно — только на соседний слайд. Дальний переход (ссылка #N, обзор,
+  // Home/End) мгновенный: плавная прокрутка через десяток экранов медленная,
+  // а при загрузке страницы браузер её ещё и прерывает.
+  function go(i, instant) {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    var far = instant || Math.abs(i - current) > 1;
+    deck.style.scrollBehavior = far ? "auto" : "";
+    slides[i].scrollIntoView({ behavior: far ? "instant" : "smooth", block: "start" });
+    deck.style.scrollBehavior = "";
+    mark(i);
+  }
+
+  // Текущий слайд — тот, что занимает середину экрана. Высокий слайд на
+  // телефоне целиком в экран не влезает, поэтому порог по доле площади
+  // не годится, а середина экрана — годится.
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        mark(slides.indexOf(e.target));
+      }
+    });
+  }, { root: deck, rootMargin: "-50% 0px -50% 0px", threshold: 0 });
+  slides.forEach(function (s) { io.observe(s); });
+
+  function fromHash() {
+    var m = /^#(\d+)$/.exec(location.hash);
+    return m ? parseInt(m[1], 10) - 1 : -1;
+  }
+  window.addEventListener("hashchange", function () {
+    var i = fromHash();
+    if (i >= 0 && i !== current) {
+      go(i);
+    }
+  });
+  var start = fromHash();
+  if (start > 0) {
+    go(start, true);
+  } else {
+    mark(0);
+  }
+
+  document.getElementById("prev").addEventListener("click", function () { go(current - 1); });
+  document.getElementById("next").addEventListener("click", function () { go(current + 1); });
+
+  // Обзор — немодальный <dialog>: show()/close() вместо атрибута hidden,
+  // Escape и повторное «O» закрывают его обработчиком клавиатуры ниже.
+  function openOverview() {
+    if (!overview.open) { overview.show(); }
+    var cur = ovGrid.children[current];
+    if (cur) { cur.focus(); }
+  }
+  function closeOverview() {
+    if (overview.open) { overview.close(); }
+  }
+  document.getElementById("ovBtn").addEventListener("click", function () {
+    if (overview.open) { closeOverview(); } else { openOverview(); }
+  });
+  overview.addEventListener("click", function (e) {
+    if (e.target === overview) { closeOverview(); }
+  });
+
+  // Тема: по умолчанию — как в системе; кнопка переключает явно и
+  // запоминает выбор, если хранилище браузера доступно.
+  var root = document.documentElement;
+  var THEME_ATTR = "data-theme";
+  try {
+    var saved = localStorage.getItem("aigw-deck-theme");
+    if (saved === "light" || saved === "dark") { root.setAttribute(THEME_ATTR, saved); }
+  } catch (err) { /* хранилище недоступно — работаем по системной теме */ }
+  function toggleTheme() {
+    var now = root.getAttribute(THEME_ATTR) ||
+      (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    var next = now === "light" ? "dark" : "light";
+    root.setAttribute(THEME_ATTR, next);
+    try { localStorage.setItem("aigw-deck-theme", next); } catch (err) { /* без запоминания */ }
+  }
+  document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+
+  // Клавиши обзора и темы — в обеих раскладках: «o»/«щ» и «t»/«е» на одной
+  // физической клавише.
+  var KEY_RIGHT = "ArrowRight";
+  var KEY_LEFT = "ArrowLeft";
+  var OVERVIEW_KEYS = ["o", "O", "щ", "Щ"];
+  var THEME_KEYS = ["t", "T", "е", "Е"];
+  var NEXT_KEYS = ["ArrowDown", KEY_RIGHT, "PageDown"];
+  var PREV_KEYS = ["ArrowUp", KEY_LEFT, "PageUp"];
+
+  function within(t, selector) {
+    return Boolean(t && t.closest && t.closest(selector));
+  }
+
+  // keyAction — действие для клавиши вне обзора или null, если клавиша
+  // слайдам не принадлежит.
+  function keyAction(k, shift) {
+    if (NEXT_KEYS.includes(k) || (k === " " && !shift)) { return function () { go(current + 1); }; }
+    if (PREV_KEYS.includes(k) || (k === " " && shift)) { return function () { go(current - 1); }; }
+    if (k === "Home") { return function () { go(0); }; }
+    if (k === "End") { return function () { go(slides.length - 1); }; }
+    if (OVERVIEW_KEYS.includes(k)) { return openOverview; }
+    if (THEME_KEYS.includes(k)) { return toggleTheme; }
+    return null;
+  }
+
+  function onKey(e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) { return; }
+    var t = e.target;
+    if (within(t, "input, textarea, select, [contenteditable]")) { return; }
+    var k = e.key;
+    if (overview.open) {
+      if (k === "Escape" || OVERVIEW_KEYS.includes(k)) { e.preventDefault(); closeOverview(); }
+      return;
+    }
+    if (within(t, "[role=tablist]") && (k === KEY_LEFT || k === KEY_RIGHT)) { return; }
+    var act = keyAction(k, e.shiftKey);
+    if (act) { e.preventDefault(); act(); }
+  }
+  document.addEventListener("keydown", onKey);
+
+  // Вкладки стратегий маскирования.
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("#stratTabs [role=tab]"));
+  function selectTab(tab) {
+    tabs.forEach(function (b) {
+      var on = b === tab;
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+      document.getElementById(b.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach(function (b, i) {
+    b.tabIndex = i === 0 ? 0 : -1;
+    b.addEventListener("click", function () { selectTab(b); });
+    b.addEventListener("keydown", function (e) {
+      if (e.key === KEY_RIGHT || e.key === KEY_LEFT) {
+        e.preventDefault();
+        var n = tabs[(i + (e.key === KEY_RIGHT ? 1 : tabs.length - 1)) % tabs.length];
+        selectTab(n);
+        n.focus();
+      }
+    });
+  });
+
+  // Копирование команд.
+  function resetCopy(b) {
+    b.textContent = "Копировать";
+    b.classList.remove("done");
+  }
+  function copyDone(b) {
+    b.textContent = "Скопировано";
+    b.classList.add("done");
+    setTimeout(function () { resetCopy(b); }, 1600);
+  }
+  function copyFailed(b) { b.textContent = "Не удалось"; }
+  function copyCommand(b) {
+    var text = b.parentNode.querySelector("pre").textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { copyDone(b); },
+        function () { copyFailed(b); });
+    } else {
+      copyFailed(b);
+    }
+  }
+  document.querySelectorAll(".cmd button").forEach(function (b) {
+    b.addEventListener("click", function () { copyCommand(b); });
+  });
+})();
+</script>
+</body>
+</html>

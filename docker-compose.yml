@@ -1,0 +1,116 @@
+# Развёртывание ai-gateway одной командой:
+#
+#   docker compose up -d --build
+#
+# Вместе с сервисом поднимаются Prometheus и Grafana: Prometheus сам опрашивает
+# GET /metrics по внутренней сети, Grafana на порту ${GRAFANA_PORT:-3000}
+# показывает дашборд «ai-gateway — работоспособность» только на чтение.
+# Им отведены свои пределы памяти: сбор метрик не может отнять ресурсы у
+# POST /process. Без них сервис работает как раньше: `docker compose up -d ai-gateway`.
+#
+# Ключ модели берётся из файла .env рядом с этим файлом и в образ не
+# встраивается. Конфигурация монтируется снаружи: правка config.yaml и
+# `docker compose kill -s HUP ai-gateway` перечитывают настройки без простоя.
+
+services:
+  ai-gateway:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    image: ai-gateway:${VERSION:-dev}
+    container_name: ai-gateway
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./.env:/app/.env:ro
+    environment:
+      # Переменные окружения имеют приоритет над .env и над config.yaml.
+      GOMAXPROCS: ${GOMAXPROCS:-0}
+      DEMO_API_KEY: ${DEMO_API_KEY:-}
+      CRM_API_KEY: ${CRM_API_KEY:-}
+      ANALYTICS_API_KEY: ${ANALYTICS_API_KEY:-}
+    healthcheck:
+      # Бинарник умеет проверять сам себя: в образе нет ни curl, ни оболочки.
+      test: ["CMD", "/app/ai-gateway", "-healthcheck", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          # Предел памяти задан осознанно: хранилище соответствий ограничено
+          # своими лимитами, и запас до предела процесса должен оставаться.
+          memory: ${MEMORY_LIMIT:-4g}
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    restart: unless-stopped
+    depends_on:
+      - ai-gateway
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # Хранить сутки и не больше 512 МБ: это витрина работоспособности на
+      # время проверки, а не долговременный архив.
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=512MB
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    # Наружу не публикуется: доступ к данным — только через Grafana на чтение.
+    deploy:
+      resources:
+        limits:
+          memory: ${PROMETHEUS_MEMORY_LIMIT:-256m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      # Только просмотр: анонимный вход с ролью Viewer, форма входа, basic auth
+      # и регистрация выключены — учётной записи, через которую можно что-то
+      # изменить, снаружи нет. Дашборд и источник данных задаются файлами.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/ai-gateway.json
+      # Без исходящих обращений: ни аналитики, ни проверки обновлений.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    deploy:
+      resources:
+        limits:
+          memory: ${GRAFANA_MEMORY_LIMIT:-256m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  prometheus-data:

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 992 576" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="aigw-settings-title aigw-settings-desc">
+      <title id="aigw-settings-title">Схема настроек ai-gateway</title>
+      <desc id="aigw-settings-desc">Файл config.yaml задаёт четырёх потребителей — benchmark для контракта /process, demo, crm и отключённый internal-analytics — и каждому свой набор типов ПД, право демаскирования, правила комбинаций и стратегию маскирования из четырёх: placeholder, asterisks, token, synthetic.</desc>
+      <defs>
+        <style>@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap');</style>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+
+      <!-- Зоны -->
+      <rect x="272" y="28" width="352" height="476" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="364" y="32" width="168" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="448" y="41" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">ПОТРЕБИТЕЛИ И ТИПЫ ПД</text>
+      <rect x="720" y="60" width="240" height="428" rx="8" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <rect x="752" y="64" width="176" height="12" rx="2" fill="#f5f5f5"/>
+      <text x="840" y="73" fill="rgba(45,49,66,0.40)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">СТРАТЕГИИ МАСКИРОВАНИЯ</text>
+
+      <!-- Стрелки -->
+      <path d="M 192,244 H 208 Q 216,244 216,236 V 116 Q 216,108 224,108 H 286" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <path d="M 192,264 H 224 Q 232,264 232,256 V 228 Q 232,220 240,220 H 286" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 192,280 H 256 Q 264,280 264,288 V 324 Q 264,332 272,332 H 286" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 192,300 H 240 Q 248,300 248,308 V 436 Q 248,444 256,444 H 286" fill="none" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <path d="M 608,108 H 734" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <path d="M 608,220 H 664 Q 672,220 672,212 V 136 Q 672,128 680,128 H 734" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 608,320 H 680 Q 688,320 688,312 V 156 Q 688,148 696,148 H 734" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <path d="M 608,344 H 696 Q 704,344 704,336 V 240 Q 704,232 712,232 H 734" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- Узлы -->
+      <rect x="32" y="224" width="160" height="96" rx="6" fill="#f5f5f5"/>
+      <rect x="32" y="224" width="160" height="96" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+      <rect x="40" y="230" width="32" height="12" rx="2" fill="transparent" stroke="rgba(79,93,117,0.50)" stroke-width="0.8"/>
+      <text x="56" y="239" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">YAML</text>
+      <text x="112" y="260" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">config.yaml</text>
+      <text x="112" y="276" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">consumers[] · detection</text>
+      <text x="112" y="288" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">SIGHUP → проверка</text>
+      <text x="112" y="300" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">→ атомарный снимок</text>
+
+      <rect x="288" y="64" width="320" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="288" y="64" width="320" height="88" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+      <rect x="296" y="70" width="20" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="306" y="79" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">IN</text>
+      <text x="448" y="100" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">benchmark — контракт POST /process</text>
+      <text x="448" y="116" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">без ключа · types: [all] · demask: true</text>
+      <text x="448" y="128" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">profile: balanced · mask: placeholder</text>
+
+      <rect x="288" y="176" width="320" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="288" y="176" width="320" height="88" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="296" y="182" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="310" y="191" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">KEY</text>
+      <text x="448" y="212" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">demo — стенд и явный API</text>
+      <text x="448" y="228" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">api_key: demo-key-for-jury · types: [all]</text>
+      <text x="448" y="240" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">demask: true · profile: balanced</text>
+
+      <rect x="288" y="288" width="320" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="288" y="288" width="320" height="88" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="296" y="294" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="310" y="303" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">KEY</text>
+      <text x="448" y="324" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">crm — пример продуктовой системы</text>
+      <text x="448" y="340" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">9 типов из 23 · demask: false</text>
+      <text x="448" y="352" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">pin и cvv — только вместе с card_number</text>
+      <text x="448" y="364" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">per_type: card_number, phone → asterisks</text>
+
+      <rect x="288" y="400" width="320" height="88" rx="6" fill="#f5f5f5"/>
+      <rect x="288" y="400" width="320" height="88" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="296" y="406" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.25)" stroke-width="0.8"/>
+      <text x="310" y="415" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">OFF</text>
+      <text x="448" y="436" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">internal-analytics</text>
+      <text x="448" y="452" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">enabled: false · masking: false</text>
+      <text x="448" y="464" fill="#7a8399" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ключ не принимается: 401</text>
+
+      <rect x="736" y="96" width="208" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="736" y="96" width="208" height="64" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+      <rect x="744" y="102" width="28" height="12" rx="2" fill="transparent" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/>
+      <text x="758" y="111" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">DEF</text>
+      <text x="840" y="132" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">placeholder</text>
+      <text x="840" y="148" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">[ФИО_1] · [КАРТА_1]</text>
+
+      <rect x="736" y="200" width="208" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="736" y="200" width="208" height="64" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+      <rect x="744" y="206" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.40)" stroke-width="0.8"/>
+      <text x="758" y="215" fill="rgba(45,49,66,0.80)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ALT</text>
+      <text x="840" y="236" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">asterisks</text>
+      <text x="840" y="252" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">**** **** **** ****</text>
+
+      <rect x="736" y="304" width="208" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="736" y="304" width="208" height="64" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="744" y="310" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.25)" stroke-width="0.8"/>
+      <text x="758" y="319" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ALT</text>
+      <text x="840" y="340" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">token</text>
+      <text x="840" y="356" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">{{pii:38e7827f}}</text>
+
+      <rect x="736" y="408" width="208" height="64" rx="6" fill="#f5f5f5"/>
+      <rect x="736" y="408" width="208" height="64" rx="6" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="744" y="414" width="28" height="12" rx="2" fill="transparent" stroke="rgba(45,49,66,0.25)" stroke-width="0.8"/>
+      <text x="758" y="423" fill="rgba(45,49,66,0.55)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ALT</text>
+      <text x="840" y="444" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">synthetic</text>
+      <text x="840" y="460" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Петров Пётр Петрович</text>
+
+      <!-- Легенда -->
+      <line x1="24" y1="524" x2="968" y2="524" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+      <text x="24" y="552" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">ЛЕГЕНДА</text>
+      <line x1="96" y1="548" x2="124" y2="548" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <text x="132" y="552" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">контракт автопроверки</text>
+      <line x1="264" y1="548" x2="292" y2="548" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="300" y="552" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">действующая настройка</text>
+      <line x1="432" y1="548" x2="460" y2="548" stroke="#4f5d75" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <text x="468" y="552" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">отключено</text>
+      <rect x="548" y="542" width="20" height="12" rx="2" fill="rgba(45,49,66,0.02)" stroke="rgba(45,49,66,0.20)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="576" y="552" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace">доступно, в config.yaml не выбрано</text>
+    </svg>

@@ -1,0 +1,14 @@
+# Prometheus опрашивает GET /metrics сервиса по внутренней сети Docker.
+#
+# Это независимый от сервиса сборщик: Grafana строит графики по тому, что
+# сохранил Prometheus, а не по данным, которые сервис отдаёт стенду. Наружу
+# Prometheus не публикуется — открыта только Grafana на чтение.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: ai-gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["ai-gateway:8080"]
